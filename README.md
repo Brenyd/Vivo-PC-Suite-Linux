@@ -126,6 +126,7 @@ echo 'options v4l2loopback card_label="vivo Phone Camera" exclusive_caps=1' | su
 | `PCSUITE_BACKUP_DIRS` | phone folders to back up (default `/sdcard/DCIM:/sdcard/Pictures:/sdcard/Movies`) |
 | `PCSUITE_SCRCPY_ARGS` | extra scrcpy options for mirroring |
 | `PCSUITE_NO_SANDBOX=1` | run without the Chromium sandbox |
+| `PCSUITE_REQUIRE_PHONE_UPDATE=1` | enforce vivo's minimum phone-app version (off by default, see Troubleshooting) |
 | `PCSUITE_DEBUG=1` | verbose log |
 
 ## Troubleshooting
@@ -133,6 +134,10 @@ echo 'options v4l2loopback card_label="vivo Phone Camera" exclusive_caps=1' | su
 - **Phone shows as "unauthorized"**: unlock it and accept the USB-debugging prompt. Run `adb devices` to check.
 - **"This device model cannot connect"**: the phone's system has no `com.vivo.pcsuite` service. Check with
   `adb shell pm path com.vivo.pcsuite`.
+- **"Update vivo Office Kit on the phone"**: the phone half of Office Kit is a vivo system app that only updates
+  through the phone's system updates, and many China phones never get the version Windows PC Suite 7.0.6 requires.
+  The Linux build skips that version check, so older phone versions connect anyway. If one feature misbehaves
+  with an old phone version, `PCSUITE_REQUIRE_PHONE_UPDATE=1` turns the check back on.
 - **Phone drive doesn't appear**: install `fuse3`, and make sure `~/vivo Phone` is empty.
 - **Blank window or sandbox error**: run `PCSUITE_NO_SANDBOX=1 vivo-pcsuite`.
 - Logs are in `~/.config/pcsuite/log/`:
@@ -142,7 +147,7 @@ echo 'options v4l2loopback card_label="vivo Phone Camera" exclusive_caps=1' | su
 
 ## Project layout
 
-- `port/patches.js`: 21 small, documented patches to vivo's bundles. `apply.js` fails loudly if a future
+- `port/patches.js`: 22 small, documented patches to vivo's bundles. `apply.js` fails loudly if a future
   PC Suite version no longer matches one.
 - `port/linux-boot.js`: entry point. It fills in Windows-only Electron APIs, maps native modules to
   `port/linux/*.js`, creates the databases, and starts the phone drive and the translation layer. Then it loads

@@ -63,4 +63,9 @@ module.exports = [
   // ---- Windows registry reads (regedit/cscript) answered from Linux (linux/regedit-linux.js via linux-boot.js)
   ['dist/electron/main.js', 'w.list(n,(r,i)=>', '(global.__linuxRegedit||w).list(n,(r,i)=>',
    'registry lookups (region, user name, drag settings) without cscript', 3],
+  // ---- phone-side Office Kit version gate: vivo only ships updates for it through the phone's own system
+  //      updates, which China models may not get. On Linux, connect anyway unless PCSUITE_REQUIRE_PHONE_UPDATE=1.
+  ['*', /UPGRADE:\{PCSUITE_MIN_VERSION:(\d+),PCSUITE_MIN_VERSION_EX:(\d+),CONNBASE_MIN_VERSION:(\d+),/,
+   'UPGRADE:{PCSUITE_MIN_VERSION:("undefined"!=typeof process&&"linux"===process.platform&&!process.env.PCSUITE_REQUIRE_PHONE_UPDATE?0:$1),PCSUITE_MIN_VERSION_EX:("undefined"!=typeof process&&"linux"===process.platform&&!process.env.PCSUITE_REQUIRE_PHONE_UPDATE?0:$2),CONNBASE_MIN_VERSION:("undefined"!=typeof process&&"linux"===process.platform&&!process.env.PCSUITE_REQUIRE_PHONE_UPDATE?0:$3),',
+   'do not block older phone-side Office Kit versions (no update available for many China phones)'],
 ];
