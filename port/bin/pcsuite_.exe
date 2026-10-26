@@ -1,0 +1,6 @@
+#!/bin/sh
+# Linux stand-in for vivo's pcsuite_.exe helper (opens URLs / repairs the Windows service).
+case "$1" in
+  repairService|"") exit 0 ;;
+  *) exec xdg-open "$1" >/dev/null 2>&1 ;;
+esac

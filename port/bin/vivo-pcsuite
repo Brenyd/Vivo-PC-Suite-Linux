@@ -1,0 +1,24 @@
+#!/bin/sh
+# Launcher for vivo PC Suite (Office Kit) on Linux.
+here="$(dirname "$(readlink -f "$0")")"
+unset NODE_OPTIONS ELECTRON_RUN_AS_NODE
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}/pcsuite"
+mkdir -p "$cfg/log"
+export PCSUITE_LANG="${PCSUITE_LANG:-en_US}"
+
+if ! command -v adb >/dev/null 2>&1; then
+  command -v notify-send >/dev/null 2>&1 && notify-send -a "vivo PC Suite" "adb is not installed" "Install it with: sudo pacman -S android-tools"
+fi
+
+# Chromium sandbox: use user namespaces when available, otherwise fall back to --no-sandbox.
+flags=""
+if [ -n "$PCSUITE_NO_SANDBOX" ] || ! unshare -Ur true >/dev/null 2>&1; then flags="--no-sandbox"; fi
+
+cd "$here" || exit 1
+"$here/electron" $flags "$@"
+rc=$?
+# backstop: unmount phone drives left behind if the app was killed
+for d in "${PCSUITE_MOUNT_DIR:-$HOME/vivo Phone}"*; do
+  grep -qF " $(printf %s "$d" | sed 's/ /\\040/g') " /proc/self/mounts 2>/dev/null && { fusermount3 -u -z "$d" 2>/dev/null || fusermount -u -z "$d"; rmdir "$d" 2>/dev/null; }
+done
+exit $rc

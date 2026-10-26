@@ -1,0 +1,712 @@
+{
+ "Config.db": {
+  "create": [
+   "CREATE TABLE if not exists Config(Id INTEGER PRIMARY KEY AUTOINCREMENT,         version INTEGER NOT NULL default 0, exData1 TEXT, exData2 TEXT)",
+   "CREATE TABLE if not exists User(Id INTEGER PRIMARY KEY AUTOINCREMENT, \t\tnickName TEXT, smallAvatar TEXT, userId TEXT, openId TEXT, token TEXT, phone TEXT)",
+   "CREATE TABLE if not exists SoftwareSet(Id INTEGER PRIMARY KEY AUTOINCREMENT, \t\topenId TEXT UNIQUE, configDir TEXT, storageDir TEXT, albumSyncOn INTEGER NOT NULL default 0,         calendarSyncOn INTEGER NOT NULL default 0, infoSyncOn INTEGER NOT NULL default 0, noteSyncOn INTEGER NOT NULL default 0,        extData1 TEXT, extData2 TEXT, extData3 TEXT, extData4 TEXT, extData5 TEXT,\t\tnoteSortType INTEGER NOT NULL default 0, noteIncomplete INTEGER NOT NULL default 0, noteSkipOn INTEGER NOT NULL default 0,\t\tupdateOn INTEGER NOT NULL default 1, logOutMode INTEGER NOT NULL default 0, notifyOn INTEGER NOT NULL default 0,\t\tautoStartOn INTEGER NOT NULL default 0, calendarWeekStartDate INTEGER NOT NULL default -1, calendarType TEXT,\t\tcalendarWeekOn INTEGER NOT NULL default 0, moduleSort TEXT, otherCalendar INTEGER NOT NULL default 0,\t\tfullDaySchedule TEXT, timeZoneOn INTEGER NOT NULL default 0, birthday TEXT, commemorationDay TEXT, countdownDay TEXT,\t\ttimeZoneType INTEGER NOT NULL default 'Asia/Shanghai', daySchedule INTEGER NOT NULL default 5, schedules TEXT, scheduleList TEXT)",
+   "create TABLE if not exists AuthToken(Id INTEGER PRIMARY KEY AUTOINCREMENT, token TEXT NOT NULL, tokenName TEXT NOT NULL, permission TEXT NOT NULL DEFAULT 'read-write', expireType TEXT NOT NULL DEFAULT 'date', expireDate TEXT, createdAt TEXT NOT NULL)"
+  ],
+  "columns": [
+   [
+    "User",
+    "email",
+    "text",
+    "' '"
+   ],
+   [
+    "User",
+    "regionCode",
+    "text",
+    "' '"
+   ],
+   [
+    "User",
+    "regionName",
+    "text",
+    "' '"
+   ],
+   [
+    "SoftwareSet",
+    "recordSortType",
+    "INTEGER",
+    "0"
+   ],
+   [
+    "SoftwareSet",
+    "recordSyncOn",
+    "INTEGER",
+    "0"
+   ]
+  ]
+ },
+ "AlbumSync.db": {
+  "create": [
+   "CREATE TABLE if not exists AlbumConfig(_id INTEGER PRIMARY KEY AUTOINCREMENT,         MetaLocalVersion INTEGER, FolderLocalVersion INTEGER, DbCurVersion INTEGER, OpenId TEXT,         extData1 TEXT, extData2 TEXT, extData3 TEXT, extData4 TEXT, extData5 TEXT, serverTime INTEGER, cleanCycle INTEGER);",
+   "CREATE TABLE if not exists AlbumFront(_id INTEGER PRIMARY KEY AUTOINCREMENT, metaId TEXT UNIQUE, fileName TEXT, clientPathAlias TEXT, mediaFormat TEXT, mediaType INTEGER, groupId TEXT, groupType INTEGER, modifiedTime LONG, duration LONG, width INTEGER, height INTEGER, indexInGroup INTEGER, md5 TEXT, createTime TEXT, dimension TEXT, clientCreateTime LONG, totalSize LONG, orientation INTEGER, version\tLONG, extAttrMap TEXT, longitude DOUBLE, latitude DOUBLE, geoHash TEXT, folderId TEXT, clientPathMode INTEGER, clientBucketId INTEGER, status INTEGER, original_data TEXT, thumb_data TEXT, original_media TEXT, save_dir TEXT, clientSource INTEGER, label_type INTEGER, label_name TEXT, user_action INTEGER, user_sync INTEGER, user_status INTEGER, extData1 TEXT, extData2 TEXT, extData3 TEXT, extData4 TEXT, extData5 TEXT, address TEXT);",
+   "CREATE TABLE if not exists AlbumLocal(_id INTEGER PRIMARY KEY AUTOINCREMENT, front_id LONG UNIQUE, image_id INTEGER, bucket_id TEXT, md5 TEXT, uniform_key TEXT, date_uploaded LONG, date_used LONG, is_slimmed INTEGER, camera_refocus INTEGER, live_photo TEXT, is_live_photo INTEGER, in_recyclebin INTEGER, recycle_id INTEGER, schedule_task INTEGER, updated_task INTEGER, original_task INTEGER, clientCreateTime LONG, md5_version TEXT, data_url TEXT, need_as_part INTEGER, part_size LONG, pre_upload_result TEXT, pre_download_result TEXT, data2 TEXT, damaged INTEGER, data4 TEXT, renew_times\tINTEGER, extData1 TEXT, extData2 TEXT, extData3 TEXT, extData4 TEXT, extData5 TEXT);",
+   "CREATE TABLE if not exists AlbumFolder(_id INTEGER PRIMARY KEY AUTOINCREMENT, folderId TEXT, folderName TEXT, clientPath TEXT, status INTEGER, createTime INTEGER, modifiedTime INTEGER, clientPathMode INTEGER, clientBucketId INTEGER, version INTEGER, clientBucketDisplayName TEXT, userStatus INTEGER, extData1 TEXT, extData2 TEXT, extData3 TEXT, extData4 TEXT, extData5 TEXT);"
+  ],
+  "columns": [
+   [
+    "AlbumFolder",
+    "orderLevel",
+    "integer",
+    "1"
+   ],
+   [
+    "AlbumFolder",
+    "existPic",
+    "integer",
+    "0"
+   ],
+   [
+    "AlbumFolder",
+    "innerCreateTime",
+    "integer",
+    "0"
+   ],
+   [
+    "AlbumConfig",
+    "lastSyncSuccessTime",
+    "integer",
+    "0"
+   ],
+   [
+    "AlbumFront",
+    "lastAccessTime",
+    "integer",
+    "0"
+   ]
+  ]
+ },
+ "AlbumTemp.db": {
+  "create": [
+   "CREATE TABLE if not exists AlbumTempFolder(_id INTEGER PRIMARY KEY AUTOINCREMENT, folderId TEXT UNIQUE)",
+   "CREATE TABLE if not exists AlbumTempMeta(_id INTEGER PRIMARY KEY AUTOINCREMENT, metaId TEXT UNIQUE)"
+  ],
+  "columns": []
+ },
+ "CalendarSync.db": {
+  "create": [
+   "CREATE TABLE Sync(_id integer primary key not null, cloudVersion integer, guid integer, lastUpdate integer, dataClass integer, status integer, localId text not null, localVersion text, contentHash text, moduleData text, localStatus integer, tableList text, tableId text, legacy integer, extData1 text, extData2 text, extData3 text, extData4 text, extData5 text);",
+   "create index idx_guid on Sync(guid);",
+   "CREATE TABLE Events(_id integer not null primary key AUTOINCREMENT, calendar_id integer, isModified integer, deleted integer, title text, createTime text, modifyTime text, dtStart integer, dtEnd integer, originalDtStart integer, originalDtEnd integer, lunarEvent integer, BirthdayState integer, birthLeapMonth integer, birthFebAddDays integer, BirthdayAlertState integer, isShowLunar integer, timezone text, allDay integer, hasAlarm integer, description text, rule text, duration text, reminderList text, reminderAlertType integer, eventStatus integer, originalInstanceTime integer, originalSyncId text, dirty integer,location text, locationDetail text, eventTimezone text, accessLevel integer, hasExtendedProperties integer, synced  integer, noteGuid text, noteType text, extendedProperties text);",
+   "CREATE TABLE Colors(_id integer primary key not null, color_index text, color integer, color_type integer, account_type text, account_name text);",
+   "CREATE TABLE Calendar(_id integer not null primary key AUTOINCREMENT, _sync_id text, isModified integer, sync_events integer, deleted text, accountName text, accountType text, name text, displayName text, mutators text, calendar_access_level integer, calendar_location, calendar_timezone text, ownerAccount text, isPrimary integer, maxReminders integer, visible integer, colorIndex text, color integer, cal_sync10 text);",
+   "CREATE TABLE Instances (_id INTEGER PRIMARY KEY, event_id INTEGER, begin INTEGER, end INTEGER, startDay INTEGER, endDay INTEGER, startMinute INTEGER, endMinute INTEGER);",
+   "CREATE TABLE ExtendedProperties(_id integer primary key not null, event_id integer, name text, value text);",
+   "CREATE TABLE Reminders(_id integer primary key not null, event_id integer, minutes integer, method integer);",
+   "CREATE TABLE Config (id integer NOT NULL, openId text, DbCurVer integer, Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, ex1 text, ex2 text, ex3 text, ex4 text, ex5 text, ex6 text, PRIMARY KEY(id));",
+   "CREATE TABLE caldavAccount (_id INTEGER PRIMARY KEY, source TEXT, account TEXT, authorization TEXT, refresh_token TEXT, syncURL TEXT, frequency TEXT, lastSyncTime TEXT, status INTEGER DEFAULT 0, syncToken TEXT DEFAULT '', UNIQUE(account, source));",
+   "CREATE TABLE caldavCalendar (_id INTEGER PRIMARY KEY, account_id INTEGER, accountDisplayName TEXT, accountURL TEXT, ctag TEXT, color INTEGER, syncToken TEXT DEFAULT '', synced INTEGER DEFAULT 0, localId TEXT DEFAULT '', source TEXT DEFAULT '', canEdit INTEGER DEFAULT 0, visible INTEGER DEFAULT 0, UNIQUE(accountURL));",
+   "CREATE TABLE caldavEvent (_id INTEGER PRIMARY KEY, accountURL TEXT, eventURL TEXT, etag TEXT, content TEXT, synced INTEGER DEFAULT 0, localId TEXT DEFAULT '', active INTEGER DEFAULT 1, reminder_lastupdate INTEGER DEFAULT 0, UNIQUE(eventURL));",
+   "CREATE TABLE caldavReminder (_id INTEGER PRIMARY KEY, event_id INTEGER, subid TEXT, title TEXT, description TEXT, isdate INTEGER, dtstart INTEGER, trigger_type INTEGER, trigger_time INTEGER, duration INTEGER);",
+   "CREATE TABLE caldavInstances (_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, event_id INTEGER, begin INTEGER, end INTEGER, startDay INTEGER, endDay INTEGER, startMinute INTEGER, endMinute INTEGER);",
+   "INSERT INTO Calendar (sync_events, accountName, accountType, displayName, calendar_access_level, ownerAccount, maxReminders, visible, colorIndex, color, cal_sync10) Select 1, 'Local account', 'LOCAL', 'Local calendar', 700, 'Local account', 5, 1, '1', -8476161, 0 WHERE NOT EXISTS (select _id from Calendar where displayName = 'Local calendar' and accountType = 'LOCAL');",
+   "INSERT INTO Calendar (sync_events, accountName, accountType, displayName, calendar_access_level, ownerAccount, maxReminders, visible, colorIndex, color, cal_sync10) Select 1, 'vivo Default', 'LOCAL', 'vivo work', 700, 'Local account', 5, 1, '8', -1159088, 0 WHERE NOT EXISTS (select _id from Calendar where displayName = 'vivo work' and accountType = 'LOCAL');",
+   "INSERT INTO Calendar (sync_events, accountName, accountType, displayName, calendar_access_level, ownerAccount, maxReminders, visible, colorIndex, color, cal_sync10) Select 1, 'Birthday', 'LOCAL', 'Birthday', 700, 'Birthday', 5, 1, '5', -604328, 0 WHERE NOT EXISTS (select _id from Calendar where  displayName = 'Birthday' and accountType = 'LOCAL');",
+   "INSERT INTO Calendar (sync_events, accountName, accountType, displayName, calendar_access_level, ownerAccount, maxReminders, visible, colorIndex, color, cal_sync10) Select 1, 'Vivo Anniversary', 'LOCAL', 'Vivo Anniversary', 700, 'Vivo Anniversary', 5, 1, '7', -415335, 0 WHERE NOT EXISTS (select _id from Calendar where displayName = 'Vivo Anniversary' and accountType = 'LOCAL');",
+   "INSERT INTO Calendar (sync_events, accountName, accountType, displayName, calendar_access_level, ownerAccount, maxReminders, visible, colorIndex, color, cal_sync10) Select 1, 'Vivo Days Matter', 'LOCAL', 'Vivo Days Matter', 700, 'Vivo Days Matter', 5, 1, '4', -5773462, 0 WHERE NOT EXISTS (select _id from Calendar where displayName = 'Vivo Days Matter' and accountType = 'LOCAL');",
+   "INSERT INTO Calendar (sync_events, accountName, accountType, displayName, calendar_access_level, ownerAccount, maxReminders, visible, colorIndex, color, cal_sync10) Select 1, 'bbknotes', 'LOCAL', 'Notes', 700, 'bbknotes', 5, 1, '8', -1137948, 0 WHERE NOT EXISTS (select _id from Calendar where displayName = 'Notes' and accountType = 'LOCAL');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select '1', -8476161, 0, 'LOCAL', 'Local account' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Local account' and account_type = 'LOCAL' and color_index='1');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'2', -7566871, 0, 'LOCAL', 'Local account' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Local account' and account_type = 'LOCAL' and color_index='2');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'3', -8660519, 0, 'LOCAL', 'Local account' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Local account' and account_type = 'LOCAL' and color_index='3');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'4', -5773462, 0, 'LOCAL', 'Local account' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Local account' and account_type = 'LOCAL' and color_index='4');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'5', -604328, 0, 'LOCAL', 'Local account' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Local account' and account_type = 'LOCAL' and color_index='5');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'6', -5212074, 0, 'LOCAL', 'Local account' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Local account' and account_type = 'LOCAL' and color_index='6');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'7', -415335, 0, 'LOCAL', 'Local account' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Local account' and account_type = 'LOCAL' and color_index='7');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'8', -1159088, 0, 'LOCAL', 'Local account' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Local account' and account_type = 'LOCAL' and color_index='8');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'1', -8476161, 0, 'LOCAL', 'vivo Default' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'vivo Default' and account_type = 'LOCAL' and color_index='1');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'2', -7566871, 0, 'LOCAL', 'vivo Default' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'vivo Default' and account_type = 'LOCAL' and color_index='2');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'3', -8660519, 0, 'LOCAL', 'vivo Default' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'vivo Default' and account_type = 'LOCAL' and color_index='3');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'4', -5773462, 0, 'LOCAL', 'vivo Default' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'vivo Default' and account_type = 'LOCAL' and color_index='4');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'5', -604328, 0, 'LOCAL', 'vivo Default' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'vivo Default' and account_type = 'LOCAL' and color_index='5');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'6', -5212074, 0, 'LOCAL', 'vivo Default' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'vivo Default' and account_type = 'LOCAL' and color_index='6');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'7', -415335, 0, 'LOCAL', 'vivo Default' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'vivo Default' and account_type = 'LOCAL' and color_index='7');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'8', -1159088, 0, 'LOCAL', 'vivo Default' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'vivo Default' and account_type = 'LOCAL' and color_index='8');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'1', -8476161, 0, 'LOCAL', 'Birthday' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Birthday' and account_type = 'LOCAL' and color_index='1');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'2', -7566871, 0, 'LOCAL', 'Birthday' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Birthday' and account_type = 'LOCAL' and color_index='2');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'3', -8660519, 0, 'LOCAL', 'Birthday' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Birthday' and account_type = 'LOCAL' and color_index='3');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'4', -5773462, 0, 'LOCAL', 'Birthday' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Birthday' and account_type = 'LOCAL' and color_index='4');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'5', -604328, 0, 'LOCAL', 'Birthday' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Birthday' and account_type = 'LOCAL' and color_index='5');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'6', -5212074, 0, 'LOCAL', 'Birthday' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Birthday' and account_type = 'LOCAL' and color_index='6');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'7', -415335, 0, 'LOCAL', 'Birthday' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Birthday' and account_type = 'LOCAL' and color_index='7');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'8', -1159088, 0, 'LOCAL', 'Birthday' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Birthday' and account_type = 'LOCAL' and color_index='8');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'1', -8476161, 0, 'LOCAL', 'Vivo Anniversary' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Anniversary' and account_type = 'LOCAL' and color_index='1');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'2', -7566871, 0, 'LOCAL', 'Vivo Anniversary' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Anniversary' and account_type = 'LOCAL' and color_index='2');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'3', -8660519, 0, 'LOCAL', 'Vivo Anniversary' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Anniversary' and account_type = 'LOCAL' and color_index='3');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'4', -5773462, 0, 'LOCAL', 'Vivo Anniversary' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Anniversary' and account_type = 'LOCAL' and color_index='4');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'5', -604328, 0, 'LOCAL', 'Vivo Anniversary' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Anniversary' and account_type = 'LOCAL' and color_index='5');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'6', -5212074, 0, 'LOCAL', 'Vivo Anniversary' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Anniversary' and account_type = 'LOCAL' and color_index='6');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'7', -415335, 0, 'LOCAL', 'Vivo Anniversary' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Anniversary' and account_type = 'LOCAL' and color_index='7');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'8', -1159088, 0, 'LOCAL', 'Vivo Anniversary' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Anniversary' and account_type = 'LOCAL' and color_index='8');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'1', -8476161, 0, 'LOCAL', 'Vivo Days Matter' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Days Matter' and account_type = 'LOCAL' and color_index='1');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'2', -7566871, 0, 'LOCAL', 'Vivo Days Matter' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Days Matter' and account_type = 'LOCAL' and color_index='2');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'3', -8660519, 0, 'LOCAL', 'Vivo Days Matter' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Days Matter' and account_type = 'LOCAL' and color_index='3');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'4', -5773462, 0, 'LOCAL', 'Vivo Days Matter' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Days Matter' and account_type = 'LOCAL' and color_index='4');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'5', -604328, 0, 'LOCAL', 'Vivo Days Matter' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Days Matter' and account_type = 'LOCAL' and color_index='5');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'6', -5212074, 0, 'LOCAL', 'Vivo Days Matter' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Days Matter' and account_type = 'LOCAL' and color_index='6');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'7', -415335, 0, 'LOCAL', 'Vivo Days Matter' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Days Matter' and account_type = 'LOCAL' and color_index='7');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'8', -1159088, 0, 'LOCAL', 'Vivo Days Matter' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Days Matter' and account_type = 'LOCAL' and color_index='8');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'1', -8476161, 0, 'LOCAL', 'Vivo Others' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Others' and account_type = 'LOCAL' and color_index='1');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'2', -7566871, 0, 'LOCAL', 'Vivo Others' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Others' and account_type = 'LOCAL' and color_index='2');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'3', -8660519, 0, 'LOCAL', 'Vivo Others' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Others' and account_type = 'LOCAL' and color_index='3');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'4', -5773462, 0, 'LOCAL', 'Vivo Others' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Others' and account_type = 'LOCAL' and color_index='4');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'5', -604328, 0, 'LOCAL', 'Vivo Others' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Others' and account_type = 'LOCAL' and color_index='5');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'6', -5212074, 0, 'LOCAL', 'Vivo Others' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Others' and account_type = 'LOCAL' and color_index='6');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'7', -415335, 0, 'LOCAL', 'Vivo Others' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Others' and account_type = 'LOCAL' and color_index='7');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'8', -1159088, 0, 'LOCAL', 'Vivo Others' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo Others' and account_type = 'LOCAL' and color_index='8');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'1', -8476161, 0, 'LOCAL', 'Vivo custom' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo custom' and account_type = 'LOCAL' and color_index='1');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'2', -7566871, 0, 'LOCAL', 'Vivo custom' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo custom' and account_type = 'LOCAL' and color_index='2');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'3', -8660519, 0, 'LOCAL', 'Vivo custom' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo custom' and account_type = 'LOCAL' and color_index='3');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'4', -5773462, 0, 'LOCAL', 'Vivo custom' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo custom' and account_type = 'LOCAL' and color_index='4');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'5', -604328, 0, 'LOCAL', 'Vivo custom' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo custom' and account_type = 'LOCAL' and color_index='5');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'6', -5212074, 0, 'LOCAL', 'Vivo custom' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo custom' and account_type = 'LOCAL' and color_index='6');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'7', -415335, 0, 'LOCAL', 'Vivo custom' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo custom' and account_type = 'LOCAL' and color_index='7');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'8', -1159088, 0, 'LOCAL', 'Vivo custom' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Vivo custom' and account_type = 'LOCAL' and color_index='8');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'1', -8476161, 0, 'LOCAL', 'Assistant' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Assistant' and account_type = 'LOCAL' and color_index='1');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'2', -7566871, 0, 'LOCAL', 'Assistant' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Assistant' and account_type = 'LOCAL' and color_index='2');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'3', -8660519, 0, 'LOCAL', 'Assistant' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Assistant' and account_type = 'LOCAL' and color_index='3');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'4', -5773462, 0, 'LOCAL', 'Assistant' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Assistant' and account_type = 'LOCAL' and color_index='4');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'5', -604328, 0, 'LOCAL', 'Assistant' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Assistant' and account_type = 'LOCAL' and color_index='5');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'6', -5212074, 0, 'LOCAL', 'Assistant' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Assistant' and account_type = 'LOCAL' and color_index='6');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'7', -415335, 0, 'LOCAL', 'Assistant' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Assistant' and account_type = 'LOCAL' and color_index='7');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'8', -1137948, 0, 'LOCAL', 'Assistant' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Assistant' and account_type = 'LOCAL' and color_index='8');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'9', -1159088, 0, 'LOCAL', 'Assistant' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'Assistant' and account_type = 'LOCAL' and color_index='9');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'1', -8476161, 0, 'LOCAL', 'bbknotes' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'bbknotes' and account_type = 'LOCAL' and color_index='1');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'2', -7566871, 0, 'LOCAL', 'bbknotes' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'bbknotes' and account_type = 'LOCAL' and color_index='2');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'3', -8660519, 0, 'LOCAL', 'bbknotes' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'bbknotes' and account_type = 'LOCAL' and color_index='3');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'4', -5773462, 0, 'LOCAL', 'bbknotes' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'bbknotes' and account_type = 'LOCAL' and color_index='4');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'5', -604328, 0, 'LOCAL', 'bbknotes' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'bbknotes' and account_type = 'LOCAL' and color_index='5');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'6', -5212074, 0, 'LOCAL', 'bbknotes' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'bbknotes' and account_type = 'LOCAL' and color_index='6');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'7', -415335, 0, 'LOCAL', 'bbknotes' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'bbknotes' and account_type = 'LOCAL' and color_index='7');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'8', -1137948, 0, 'LOCAL', 'bbknotes' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'bbknotes' and account_type = 'LOCAL' and color_index='8');",
+   "INSERT INTO Colors (color_index, color, color_type, account_type, account_name) Select'9', -1159088, 0, 'LOCAL', 'bbknotes' WHERE NOT EXISTS (Select _id from Colors WHERE account_name = 'bbknotes' and account_type = 'LOCAL' and color_index='9');",
+   "INSERT INTO Sync (dataClass, localId, localVersion, contentHash, moduleData, localStatus, tableId, legacy) Select 10, strftime('%s001', 'now') || '_pc_calendar', 0, '3cc53f7fa9b751fb8fbc55bd95a89d3a', '{\"accountName\":\"Local account\",\"accountType\":\"LOCAL\",\"cal_sync10\":\"0\",\"color\":\"-8476161\",\"colorIndex\":\"1\",\"colorList\":[{\"color\":-8476161,\"colorIndex\":1},{\"color\":-7566871,\"colorIndex\":2},{\"color\":-8660519,\"colorIndex\":3},{\"color\":-5773462,\"colorIndex\":4},{\"color\":-604328,\"colorIndex\":5},{\"color\":-5212074,\"colorIndex\":6},{\"color\":-415335,\"colorIndex\":7},{\"color\":-1159088,\"colorIndex\":8}],\"displayName\":\"Local calendar\",\"ownerAccout\":\"Local account\",\"visible\":\"1\"}', 1, (select _id from Calendar where Calendar.displayName = 'Local calendar') || '_calendar', 0 WHERE NOT EXISTS (select _id from Sync where contentHash = '3cc53f7fa9b751fb8fbc55bd95a89d3a');",
+   "INSERT INTO Sync (dataClass, localId, localVersion, contentHash, moduleData, localStatus, tableId, legacy) Select 10, strftime('%s002', 'now') || '_pc_calendar', 0, 'aac772216aecbeca0e86d06671fe985a', '{\"accountName\":\"Birthday\",\"accountType\":\"LOCAL\",\"cal_sync10\":\"0\",\"color\":\"-604328\",\"colorIndex\":\"5\",\"colorList\":[{\"color\":-8476161,\"colorIndex\":1},{\"color\":-7566871,\"colorIndex\":2},{\"color\":-8660519,\"colorIndex\":3},{\"color\":-5773462,\"colorIndex\":4},{\"color\":-604328,\"colorIndex\":5},{\"color\":-5212074,\"colorIndex\":6},{\"color\":-415335,\"colorIndex\":7},{\"color\":-1159088,\"colorIndex\":8}],\"displayName\":\"Birthday\",\"ownerAccout\":\"Birthday\",\"visible\":\"1\"}', 1, (select _id from Calendar where Calendar.displayName = 'Birthday') || '_calendar', 0 WHERE NOT EXISTS (select _id from Sync where contentHash = 'aac772216aecbeca0e86d06671fe985a');",
+   "INSERT INTO Sync (dataClass, localId, localVersion, contentHash, moduleData, localStatus, tableId, legacy) Select 10, strftime('%s003', 'now') || '_pc_calendar', 0, 'dfc455f9ebd6ed5b5b924b95181fb479', '{\"accountName\":\"Vivo Anniversary\",\"accountType\":\"LOCAL\",\"cal_sync10\":\"0\",\"color\":\"-415335\",\"colorIndex\":\"7\",\"colorList\":[{\"color\":-8476161,\"colorIndex\":1},{\"color\":-7566871,\"colorIndex\":2},{\"color\":-8660519,\"colorIndex\":3},{\"color\":-5773462,\"colorIndex\":4},{\"color\":-604328,\"colorIndex\":5},{\"color\":-5212074,\"colorIndex\":6},{\"color\":-415335,\"colorIndex\":7},{\"color\":-1159088,\"colorIndex\":8}],\"displayName\":\"Vivo Anniversary\",\"ownerAccout\":\"Vivo Anniversary\",\"visible\":\"1\"}', 1, (select _id from Calendar where Calendar.displayName = 'Vivo Anniversary') || '_calendar', 0 WHERE NOT EXISTS (select _id from Sync where contentHash = 'dfc455f9ebd6ed5b5b924b95181fb479');",
+   "INSERT INTO Sync (dataClass, localId, localVersion, contentHash, moduleData, localStatus, tableId, legacy) Select 10, strftime('%s004', 'now') || '_pc_calendar', 0, 'e1d7ad87233ce268419945f7600a8804', '{\"accountName\":\"Vivo Days Matter\",\"accountType\":\"LOCAL\",\"cal_sync10\":\"0\",\"color\":\"-5773462\",\"colorIndex\":\"4\",\"colorList\":[{\"color\":-8476161,\"colorIndex\":1},{\"color\":-7566871,\"colorIndex\":2},{\"color\":-8660519,\"colorIndex\":3},{\"color\":-5773462,\"colorIndex\":4},{\"color\":-604328,\"colorIndex\":5},{\"color\":-5212074,\"colorIndex\":6},{\"color\":-415335,\"colorIndex\":7},{\"color\":-1159088,\"colorIndex\":8}],\"displayName\":\"Vivo Days Matter\",\"ownerAccout\":\"Vivo Days Matter\",\"visible\":\"1\"}', 1, (select _id from Calendar where Calendar.displayName = 'Vivo Days Matter') || '_calendar', 0 WHERE NOT EXISTS (select _id from Sync where contentHash = 'e1d7ad87233ce268419945f7600a8804');",
+   "INSERT INTO Sync (dataClass, localId, localVersion, contentHash, moduleData, localStatus, tableId, legacy) Select 10, strftime('%s005', 'now') || '_pc_calendar', 0, 'e01dbf387a37cb54fb8e936a31ed2284', '{\"accountName\":\"vivo Default\",\"accountType\":\"LOCAL\",\"cal_sync10\":\"0\",\"color\":\"-1159088\",\"colorIndex\":\"8\",\"colorList\":[{\"color\":-8476161,\"colorIndex\":1},{\"color\":-7566871,\"colorIndex\":2},{\"color\":-8660519,\"colorIndex\":3},{\"color\":-5773462,\"colorIndex\":4},{\"color\":-604328,\"colorIndex\":5},{\"color\":-5212074,\"colorIndex\":6},{\"color\":-415335,\"colorIndex\":7},{\"color\":-1159088,\"colorIndex\":8}],\"displayName\":\"vivo work\",\"ownerAccout\":\"Local account\",\"visible\":\"1\"}', 1, (select _id from Calendar where Calendar.displayName = 'vivo work') || '_calendar', 0 WHERE NOT EXISTS (select _id from Sync where contentHash = 'e01dbf387a37cb54fb8e936a31ed2284');",
+   "insert into Config (DbCurVer) select 4 where not exists(select 1 from Config);",
+   "create trigger if not exists delete_caldavAccount BEFORE DELETE ON caldavAccount BEGIN DELETE FROM caldavEvent WHERE caldavEvent.accountURL in (SELECT caldavCalendar.accountURL FROM caldavCalendar WHERE caldavCalendar.account_id = OLD._id); DELETE FROM caldavCalendar WHERE caldavCalendar.account_id = OLD._id; END;",
+   "create trigger if not exists insert_caldavCalendar BEFORE INSERT ON caldavCalendar FOR EACH ROW BEGIN SELECT CASE WHEN EXISTS (SELECT 1 FROM caldavAccount WHERE _id = NEW.account_id) THEN NULL ELSE RAISE(ABORT, 'account_id not found in caldavAccount table') END; END;",
+   "create trigger if not exists delete_caldavEvent BEFORE DELETE ON caldavEvent BEGIN DELETE FROM caldavReminder WHERE caldavReminder.event_id = OLD._id; END;",
+   "create trigger if not exists insert_caldavReminder BEFORE INSERT ON caldavReminder FOR EACH ROW BEGIN SELECT CASE WHEN EXISTS (SELECT 1 FROM caldavEvent WHERE _id = NEW.event_id) THEN NULL ELSE RAISE(ABORT, 'event_id not found in caldavEvent table') END; END;",
+   "DROP TRIGGER IF EXISTS delete_instance;"
+  ],
+  "columns": [
+   [
+    "Calendar",
+    "key_calendar_ext_properties",
+    "text",
+    "' '"
+   ],
+   [
+    "Calendar",
+    "localId",
+    "text",
+    "' '"
+   ],
+   [
+    "Calendar",
+    "syncUri",
+    "text",
+    "'SDK_CALENDAR'"
+   ],
+   [
+    "Calendar",
+    "c_guid",
+    "integer",
+    "0"
+   ],
+   [
+    "Events",
+    "localId",
+    "text",
+    "' '"
+   ],
+   [
+    "Events",
+    "syncUri",
+    "text",
+    "'SDK_CALENDAR'"
+   ],
+   [
+    "Events",
+    "eventColor_index",
+    "integer",
+    "0"
+   ],
+   [
+    "Events",
+    "e_guid",
+    "integer",
+    "0"
+   ],
+   [
+    "Events",
+    "drag_animation",
+    "text",
+    "'0'"
+   ],
+   [
+    "Reminders",
+    "instance_id",
+    "integer",
+    "0"
+   ],
+   [
+    "Reminders",
+    "title",
+    "text",
+    "' '"
+   ],
+   [
+    "Reminders",
+    "description",
+    "text",
+    "' '"
+   ],
+   [
+    "Reminders",
+    "dtstart",
+    "integer",
+    "0"
+   ],
+   [
+    "Instances",
+    "toastId",
+    "text",
+    "'0_0'"
+   ],
+   [
+    "Instances",
+    "toastStatus",
+    "text",
+    "0"
+   ],
+   [
+    "caldavReminder",
+    "instance_id",
+    "integer",
+    "0"
+   ],
+   [
+    "caldavReminder",
+    "minutes",
+    "integer",
+    "0"
+   ],
+   [
+    "caldavReminder",
+    "method",
+    "integer",
+    "0"
+   ],
+   [
+    "Config",
+    "lastSyncSuccessTime",
+    "integer",
+    "0"
+   ],
+   [
+    "Config",
+    "lastSyncFailReason",
+    "text",
+    "'succeed'"
+   ]
+  ]
+ },
+ "NoteSync.db": {
+  "create": [
+   "create table if not exists Document(id integer primary key autoincrement not null, guid text not null, deleted integer not null default 1, updateSequenceNum integer, createTime integer not null, updateTime integer not null, name text not null, mime text not null, documentKey text, domainAddr text, documentSize integer not null, fileID text not null, localDataStatus integer not null default 0, dirty integer not null default 0, isReady integer not null default 1, ex1 text, ex2 text, ex3);",
+   "create index if not exists indexDocumentguid on Document(guid);",
+   "create index if not exists indexDocumentdeleted on Document(deleted);",
+   "create index if not exists indexDocumentfileID on Document(fileID);",
+   "create index if not exists indexDocumentdirty on Document(dirty);",
+   "create table if not exists File(id integer primary key autoincrement not null, guid text not null, status integer not null default 0, path text not null, fileSize integer not null, checkSum text not null, checkSumVersion text not null default '2', fileCreateTime integer not null, metaType integer not null, hasThumb integer not null default 0, mimeType text not null, width integer not null default 0, height integer not null default 0, duration integer not null default 0, rotate integer not null default 0, source text not null default 'SKETCH', category text not null default 'NOTES', relateFlag integer not null default 1, requestFrom text not null default 'SKETCH_NOTES', metaId text default ' ', uploadUrl text default ' ', thumbPath text default ' ', thumbCheckSum text default ' ', thumbCheckSumVersion text default '2', thumbStyle text default ' ', ex1 text, ex2 text, ex3 text);",
+   "create index if not exists indexFilePath on File(path);",
+   "create index if not exists indexFileGUID on File(guid);",
+   "create table if not exists NoteBook(id integer primary key autoincrement not null, guid text not null, deleted integer not null default 1, updateSequenceNum integer, createTime integer not null default 0, updateTime integer not null default 0, name text not null, defaultNoteBook integer not null default 0, iconColor text not null, dirty integer not null default 0, ex1 text, ex2 text, ex3 text);",
+   "create index if not exists indexNotebookGUID on Notebook (guid);",
+   "create table if not exists Note(id integer primary key autoincrement not null, guid text not null, deleted integer not null default 1, updateSequenceNum integer, createTime integer not null, updateTime integer not null, noteBookGuid text not null, title text, contentDigest text, contentNote text, originContent text, contentKey integer not null default -1, thumbnail text, importantLevel integer, bgColor text, alarmTime integer default -1, oldAlarmTime integer, encryptType integer, type integer not null, pictureMode integer, stickTop integer default 0, stickTopTime integer default 0, paperTexture text, pageMargins text, symbolCnf text, localDataStatus integer not null default 0, dirty integer not null default 0, isReady integer not null default 1, ex1 text, ex2 text, ex3 text);",
+   "create index if not exists indexNoteGUID on Note (guid);",
+   "create table if not exists Tag(id integer primary key autoincrement not null, guid text not null, deleted integer not null default 1, updateSequenceNum integer, createTime integer not null, updateTime integer not null, noteGuid text not null, name text not null, bgColor text not null, type integer not null, localDataStatus integer not null default 0, dirty integer not null default 0, ex1 text, ex2 text, ex3 text);",
+   "create index if not exists indexTagGUID on Tag (guid);",
+   "create table if not exists Resource(id integer primary key autoincrement not null, guid text not null, deleted integer not null default 1, updateSequenceNum integer, createTime integer not null, updateTime integer not null, noteGuid text not null, name text not null, mime text not null, resourceKey text, domainAddr text, resourceSize integer not null, resType integer not null, fileID text not null, localDataStatus integer not null default 0, dirty integer not null default 0, ex1 text, ex2 text, ex3 text);",
+   "create index if not exists indexResourceGUID on Resource (guid);",
+   "create table if not exists ToDo(id integer primary key autoincrement not null, guid text not null, deleted integer not null default 1, updateSequenceNum integer, createTime integer default 0, updateTime integer default 0, contentToDo text not null, bgColor text not null, type integer not null, sort real not null, reminderTime integer, symbolInfo integer, noticeType integer, localDataStatus integer not null default 0,dirty integer not null default 0, ex1 text, ex2 text, ex3 text);",
+   "create index if not exists indexToDoGUID on ToDo (guid);",
+   "create table if not exists ToDoCategory(id integer primary key autoincrement not null, guid text not null, deleted integer not null default 1, updateSequenceNum integer, createTime integer default 0, updateTime integer default 0, name text not null, color integer default 0, colorIndex integer default 0, localDataStatus integer not null default 0, dirty integer not null default 0);",
+   "create index if not exists indexToDoCategoryGUID on ToDoCategory (guid);",
+   "create table if not exists User(id integer primary key autoincrement not null, userId text not null, noteUSN integer not null default 0, todoUSN integer not null default 0, documentUSN integer not null default 0, lastSyncTime text default '2010-6-7 00:00:00.000', maxEntries integer not null default 0, ex1 text default ' ', ex2 text default ' ', ex3 text default ' ');",
+   "create index if not exists indexUserUserID on User (userId);",
+   "create table if not exists NoteCache(id integer primary key autoincrement not null, guid text not null, title text not null, contentNote text not null, cacheTime text not null);"
+  ],
+  "columns": [
+   [
+    "NoteBook",
+    "nameNew",
+    "text",
+    "' '"
+   ],
+   [
+    "NoteBook",
+    "parentGuid",
+    "text",
+    "'-1'"
+   ],
+   [
+    "NoteBook",
+    "sort",
+    "real",
+    "0"
+   ],
+   [
+    "NoteBook",
+    "type",
+    "integer",
+    "0"
+   ],
+   [
+    "Note",
+    "contentUpdateTime",
+    "integer",
+    "0"
+   ],
+   [
+    "Note",
+    "attrUpdateTime",
+    "integer",
+    "0"
+   ],
+   [
+    "Note",
+    "hdwContent",
+    "text",
+    "' '"
+   ],
+   [
+    "Note",
+    "syncProtocolVersion",
+    "integer",
+    "0"
+   ],
+   [
+    "Note",
+    "syncLock",
+    "integer",
+    "0"
+   ],
+   [
+    "Note",
+    "isAiNote",
+    "integer",
+    "0"
+   ],
+   [
+    "Note",
+    "aiQuery",
+    "text",
+    "' '"
+   ],
+   [
+    "Note",
+    "history",
+    "integer",
+    "0"
+   ],
+   [
+    "Note",
+    "contentMd5",
+    "text",
+    "'0'"
+   ],
+   [
+    "Resource",
+    "sort",
+    "integer",
+    "0"
+   ],
+   [
+    "Resource",
+    "syncProtocolVersion",
+    "integer",
+    "0"
+   ],
+   [
+    "Resource",
+    "category",
+    "integer",
+    "0"
+   ],
+   [
+    "Resource",
+    "resourceTextContent",
+    "text",
+    "''"
+   ],
+   [
+    "Resource",
+    "resourceTextSummary",
+    "text",
+    "''"
+   ],
+   [
+    "Resource",
+    "resourceTextDigest",
+    "text",
+    "''"
+   ],
+   [
+    "Resource",
+    "resourceTextUpdateTime",
+    "integer",
+    "0"
+   ],
+   [
+    "Resource",
+    "expandFields",
+    "text",
+    "''"
+   ],
+   [
+    "Resource",
+    "resourceTransferText",
+    "text",
+    "''"
+   ],
+   [
+    "ToDo",
+    "alarmRepeatRule",
+    "integer",
+    "0"
+   ],
+   [
+    "ToDo",
+    "remark",
+    "text",
+    "' '"
+   ],
+   [
+    "ToDo",
+    "duration",
+    "text",
+    "' '"
+   ],
+   [
+    "ToDo",
+    "priority",
+    "integer",
+    "0"
+   ],
+   [
+    "ToDo",
+    "sourceType",
+    "integer",
+    "0"
+   ],
+   [
+    "ToDo",
+    "rrule",
+    "text",
+    "' '"
+   ],
+   [
+    "ToDo",
+    "dueTimeType",
+    "integer",
+    "0"
+   ],
+   [
+    "ToDo",
+    "relativeTime",
+    "text",
+    "'[0]'"
+   ],
+   [
+    "ToDo",
+    "location",
+    "text",
+    "' '"
+   ],
+   [
+    "ToDo",
+    "sortv70",
+    "integer",
+    "0"
+   ],
+   [
+    "ToDo",
+    "timeZone",
+    "text",
+    "' '"
+   ],
+   [
+    "ToDo",
+    "showLunar",
+    "integer",
+    "1"
+   ],
+   [
+    "ToDo",
+    "categoryGuid",
+    "text",
+    "' '"
+   ],
+   [
+    "ToDo",
+    "reminderTimev70",
+    "integer",
+    "0"
+   ],
+   [
+    "ToDo",
+    "childCount",
+    "integer",
+    "0"
+   ],
+   [
+    "ToDo",
+    "pguid",
+    "text",
+    "' '"
+   ],
+   [
+    "ToDoCategory",
+    "defaultType",
+    "integer",
+    "0"
+   ],
+   [
+    "User",
+    "defaultNoteSynced",
+    "integer",
+    "0"
+   ],
+   [
+    "User",
+    "defaultTodoPopover",
+    "integer",
+    "0"
+   ],
+   [
+    "User",
+    "dirty",
+    "integer",
+    "0"
+   ],
+   [
+    "User",
+    "clientVersion",
+    "integer",
+    "1000000"
+   ],
+   [
+    "User",
+    "todoVersion",
+    "integer",
+    "1"
+   ],
+   [
+    "User",
+    "lastReportDate",
+    "text",
+    "'20000101'"
+   ],
+   [
+    "User",
+    "lastSyncSuccessTime",
+    "integer",
+    "0"
+   ],
+   [
+    "User",
+    "noteSaveAsCopy",
+    "text",
+    "' '"
+   ],
+   [
+    "User",
+    "todoCategoryUSN",
+    "integer",
+    "0"
+   ]
+  ]
+ },
+ "RecordSync.db": {
+  "create": [
+   "create table if not exists Record(id integer primary key autoincrement not null, localId text not null, cloudVersion text not null default ' ', localVersion integer not null default 0, lastUpdate integer not null default 0, localLastUpdate integer not null default 0,guid text not null default '0', status integer not null default 1, inRecycle integer not null default 0, mDuration integer not null default 0, mHasMark integer not null default 0, mHasPic integer not null default 0, mHasCovert integer not null default 0, mHasSummary integer not null default 0, mMediaFileOriginalPath text not null default ' ', mPath text not null default ' ', title text not null default ' ', mOriginTitle text not null default ' ', mDisplayName text not null default ' ', mDateModified integer not null default 0, mSize integer not null default 0, mMimeType text not null default ' ', createTime integer not null default 0, dirty integer not null default 0, aiLock integer not null default 0, localDataStatus integer not null default 0, localFileId integer not null default 0, mRecordFileId integer not null default 0, otherData text not null default '{}');",
+   "create index if not exists indexLocalId on Record(localId);",
+   "create table if not exists Summary(id integer primary key autoincrement not null, uuid text not null default ' ', mFileId text not null default ' ', addTime integer not null default 0, mSummarySpanTextList text not null default ' ', title text not null default ' ', content text not null default ' ', textType integer not null default 0, relate text not null default ' ', otherData text not null default '{}');",
+   "create index if not exists indexSumFileId on Summary(mFileId);",
+   "create table if not exists Mark(id integer primary key autoincrement not null, uuid text not null default ' ', mFileId text not null default ' ', mMarkItemInfoModifiedTime integer not null default 0, mMarkItemList text not null default '[]', otherData text not null default '{}');",
+   "create index if not exists indexMarkFileId on Mark(mFileId);",
+   "create table if not exists Photo(id integer primary key autoincrement not null, uuid text not null default ' ', mFileId text not null default ' ', mPhotoRemarkModifiedTime integer not null default 0, mPhotoRemarkPath text not null default ' ', mPhotoRemarkUri text not null default ' ', mPhotoSize integer not null default 0, localFileId integer not null default 0, otherData text not null default '{}');",
+   "create index if not exists indexPhotoFileId on Photo(mFileId);",
+   "create table if not exists Recognize(id integer primary key autoincrement not null, uuid text not null default ' ', mFileId text not null default ' ', startTime integer not null default 0, endTime integer not null default 0, aWholeSentence integer not null default 0, mRecognizeItemInfoModifiedTime integer not null default 0, content text not null default ' ', mLanguage text not null default ' ', speaker integer not null default 0, isLastSentence integer not null default 0, mIsBackground integer not null default 0, isUserVisible integer not null default 0, lid integer not null default 0, convertTimeTip text not null default 'GONE', textCanConvert integer not null default 0, textType integer not null default 0, mSentenceId integer not null default 0, mParagraphId integer not null default 0, speakerColor integer not null default 0, speakerName text not null default  ' ', isSupportSpeaker integer default 0,isSupportNewConvert integer default 0, mRecordIsAiName integer default 0, otherData text not null default '{}');",
+   "create index if not exists indexRecFileId on Recognize(mFileId);",
+   "create table if not exists TextArrangement(id integer primary key autoincrement not null, uuid text not null default ' ', mFileId text not null default ' ', startTime integer not null default 0, endTime integer not null default 0, aWholeSentence integer not null default 0, mRecognizeItemInfoModifiedTime integer not null default 0, content text not null default ' ', mLanguage text not null default ' ', speaker integer not null default 0, isLastSentence integer not null default 0, mIsBackground integer not null default 0, isUserVisible integer not null default 0, lid integer not null default 0, convertTimeTip text not null default 'GONE', textCanConvert integer not null default 0, textType integer not null default 0, mSentenceId integer not null default 0, mParagraphId integer not null default 0, speakerColor integer not null default 0, speakerName text not null default  ' ', isSupportSpeaker integer default 0,isSupportNewConvert integer default 0, mRecordIsAiName integer default 0, otherData text not null default '{}');",
+   "create index if not exists indexTextArrangementFileId on TextArrangement(mFileId);",
+   "create table if not exists LocalFile(id integer primary key autoincrement not null, uuid text not null default ' ', fileType text not null default 'record' , mFileId text not null default ' ', status integer not null default 0, localPath text not null default ' ', file_name text not null default ' ', metaId text not null default ' ', domainAddr text not null default ' ', fileSize integer not null default 0, checkSumVersion text not null default '2', checkSum text not null default ' ', metaType integer not null default 0, mimeType text not null default ' ', width integer not null default 0, height integer not null default 0, duration integer not null default 0, rotate integer not null default 0,createTime integer not null default 0 );",
+   "create index if not exists indexLocalFileId on LocalFile(mFileId);",
+   "create table if not exists Config(id integer primary key autoincrement not null, openid text not null default ' ', cloudVersion text not null default '0', lastReportDay text not null default '20210101', clientVersion integer not null default 0);",
+   "create index if not exists indexOpenid on Config(openid);",
+   "create table if not exists Outline(id integer primary key autoincrement not null, uuid text not null default ' ', mFileId text not null default ' ', bg integer not null default 0, ed integer not null default 0, mCreateTime integer not null default 0, mModifyTime integer not null default 0, mSaveAndroidVersion integer not null default 0, outline text not null default  ' ', otherData text not null default '{}');",
+   "create index if not exists indexOutlineFileId on Outline(mFileId);",
+   "create table if not exists Insight(id integer primary key autoincrement not null, uuid text not null default ' ', mFileId text not null default ' ', idPhone integer not null default 0, costTime integer not null default 0, startTime integer not null default 0, endTime integer not null default 0, modifyDate integer not null default 0, recreateTip integer not null default 0,insightContent text not null default ' ', otherData text not null default '{}');",
+   "create index if not exists indexInsightFileId on Insight(mFileId);"
+  ],
+  "columns": [
+   [
+    "Record",
+    "mHasAiInsight",
+    "integer",
+    "0"
+   ],
+   [
+    "Record",
+    "mRecordMode",
+    "integer",
+    "-1"
+   ],
+   [
+    "Config",
+    "lastSyncSuccessTime",
+    "integer",
+    "0"
+   ],
+   [
+    "Config",
+    "lastSyncFailReason",
+    "text",
+    "'succeed'"
+   ],
+   [
+    "Summary",
+    "mSummaryMarks",
+    "text",
+    "' '"
+   ],
+   [
+    "Summary",
+    "mPointRelateData",
+    "text",
+    "' '"
+   ],
+   [
+    "Summary",
+    "scenesType",
+    "integer",
+    "1"
+   ]
+  ]
+ },
+ "Report.db": {
+  "create": [
+   "CREATE TABLE if not exists Config(     id INTEGER PRIMARY KEY AUTOINCREMENT, \tSyncInfoVer  integer  default 1,\tDayReportVer integer  default 1, \tOperLogVer   integer  default 1 , \textData1 integer,\textData2 integer,\textData3 TEXT,\textData4 TEXT \t) ;",
+   "insert into Config('SyncInfoVer') values(1) ;"
+  ],
+  "columns": []
+ }
+}

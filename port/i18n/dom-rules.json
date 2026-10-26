@@ -1,0 +1,31 @@
+[
+ [
+  ".tab-item, .header-tabs, .view-switch, [class*=view-tab]",
+  {
+   "年": "Year",
+   "月": "Month",
+   "周": "Week",
+   "日": "Day",
+   "日程": "Events"
+  }
+ ],
+ [
+  "th, .month-header-weekly, .fc-col-header-cell, .week-header, .la-date-table thead, [class*=weekday], [class*=week-title]",
+  {
+   "日": "Sun",
+   "一": "Mon",
+   "二": "Tue",
+   "三": "Wed",
+   "四": "Thu",
+   "五": "Fri",
+   "六": "Sat"
+  }
+ ],
+ [
+  ".theMonth-title, .date-switch, .month-title",
+  {
+   "年": "/",
+   "月": ""
+  }
+ ]
+]

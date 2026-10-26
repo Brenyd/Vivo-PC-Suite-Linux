@@ -1,0 +1,13 @@
+#!/bin/sh
+# Linux stand-in for vivo's screen-mirroring client (PCMode.exe): mirrors the phone with scrcpy.
+notify() { command -v notify-send >/dev/null 2>&1 && notify-send -a "vivo PC Suite" -i smartphone "$1" "$2"; echo "$1: $2" >&2; }
+if ! command -v scrcpy >/dev/null 2>&1; then
+  notify "Screen mirroring needs scrcpy" "Install it with: sudo pacman -S scrcpy"
+  exit 1
+fi
+serials=$(adb devices 2>/dev/null | awk 'NR>1 && $2=="device"{print $1}')
+count=$(printf '%s\n' "$serials" | grep -c . || true)
+if [ "$count" -eq 0 ]; then notify "Screen mirroring" "No phone connected over USB/ADB."; exit 1; fi
+sel=""
+[ "$count" -gt 1 ] && sel="-s $(printf '%s\n' "$serials" | head -n1)"
+exec scrcpy $sel --window-title "vivo phone" --stay-awake ${PCSUITE_SCRCPY_ARGS:-}

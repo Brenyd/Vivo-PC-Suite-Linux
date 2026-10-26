@@ -1,0 +1,14 @@
+#!/bin/sh
+# Linux stand-in for vivo's pc_toast.exe: shows desktop notifications via notify-send.
+title="vivo PC Suite"; msg=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -t|-title) title="$2"; shift ;;
+    -m|-informativeText) msg="$2"; shift ;;
+    -close) exit 0 ;;
+    *) ;;
+  esac
+  shift
+done
+command -v notify-send >/dev/null 2>&1 || exit 0
+exec notify-send -a "vivo PC Suite" -i smartphone "$title" "$msg"
