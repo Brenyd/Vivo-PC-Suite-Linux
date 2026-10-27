@@ -8,7 +8,8 @@ adb, a call-handoff window, scrcpy mirroring and more. It's aimed at vivo phones
 that don't do normal USB/MTP file transfer.
 
 The app opens in an **iTunes-style window**: a music library and player, iTunes-style music sync to the phone,
-vivo's own Office Kit pages, and Google services in place of vivo's cloud.
+a Google Photos-style view of the phone's photos and videos, and Google services in place of vivo's cloud.
+vivo's own app runs hidden in the background as the connection back end.
 
 <p align="center"><img src="docs/screenshots/itunes-library.png" width="860" alt="iTunes-style music library"></p>
 
@@ -16,10 +17,10 @@ vivo's own Office Kit pages, and Google services in place of vivo's cloud.
 |---|---|
 | <img src="docs/screenshots/itunes-album.png" alt="Album"> | <img src="docs/screenshots/phone-summary.png" alt="Phone summary"> |
 | **Album view and player** | **Phone summary and sync options** |
-| <img src="docs/screenshots/phone-music.png" alt="Music on the phone"> | <img src="docs/screenshots/office-kit-google.png" alt="Office Kit with Google services"> |
-| **Music on the phone** | **Office Kit home, with Google instead of vivo cloud** |
+| <img src="docs/screenshots/phone-music.png" alt="Music on the phone"> | <img src="docs/screenshots/phone-photos.png" alt="Photos on the phone"> |
+| **Music on the phone** | **Photos and videos on the phone** |
 
-vivo's own pages (shown with `PCSUITE_CLASSIC_UI=1`, vivo's original window):
+vivo's original window (still there with `PCSUITE_CLASSIC_UI=1`):
 
 <p align="center"><img src="docs/screenshots/home.png" width="860" alt="Home screen on Linux"></p>
 
@@ -108,15 +109,28 @@ or `cover.jpg`/`folder.jpg`).
 
 How sync works:
 
-- Songs go to `Music/<Artist>/<Album>/` on the phone, and playlists become `.m3u8` files in `Music/Playlists`.
+- Songs go to `/storage/emulated/0/Music/<Artist>/<Album>/` on the phone, and playlists become `.m3u8` files in
+  `Music/Playlists`. *On My Phone* shows that Music folder, with the tags from Android's media index.
 - Sync is incremental and only copies what changed. A cancelled sync resumes where it stopped.
 - Optionally, lossless and very high bit-rate songs are converted to 256 kbps AAC, and the phone syncs
   automatically when it's plugged in.
 - **Sync only ever removes songs it put on the phone itself** (it keeps a list in
   `Music/.vivo-officekit-sync.json`). Music you copied there another way is left alone.
 
-**Office Kit.** vivo's own pages: Home, Connect, Notes, Calendar, Albums, Recorder, Tools and Settings.
-vivo's window is docked into the content area, so it behaves exactly as before.
+**Photos.** The phone's photos and videos, in the style of Google Photos:
+
+- A timeline by day, with Photos, Videos and Albums (the phone's folders: Camera, Screenshots and so on).
+- Click a photo to view it full size, with an info panel (date, size, resolution, folder). Videos play in the app.
+- Select photos one at a time, a whole day, or with Shift. Then download them to `~/Pictures/<phone name>`
+  (the file dates are kept), or delete them from the phone.
+- Thumbnails are made on the PC and cached, so the second visit is instant.
+
+**Files** opens the phone drive (`~/vivo Phone`) in your file manager (Nemo, Dolphin and so on), even when the
+system's default app for folders is an image viewer.
+
+**vivo's app** runs hidden: its window and pages (Home, Notes, Calendar, Tools and so on) aren't shown. Only its
+back end is used, so the phone connects the way it does on Windows (call handoff and the rest). When a phone is
+plugged in, the app clicks vivo's "Use USB connection" for you.
 
 **Google.** Google replaces vivo's cloud, which needs a vivo account and doesn't work outside the vivo
 ecosystem. The pages open inside the window with one Google sign-in that's remembered (*Open in Browser* is
@@ -131,12 +145,10 @@ always there as a fallback):
 | Notes sync | Google Keep |
 | Albums backup | Google Photos |
 | Cloud Drive | Google Drive |
-| Find device | Find My Device |
-| Browser sync, spam blocking, "Sign in to auto-connect" | hidden (no Google web equivalent; USB connection still works) |
+| Find device, browser sync, spam blocking, "Sign in to auto-connect" | hidden (no Google web equivalent; USB connection still works) |
 
 China-model phones usually ship without Google Play services. The Google pages work on the PC either way,
-but for the phone itself to sync contacts and calendar with Google, or show up in Find My Device, it needs
-Google services installed.
+but for the phone itself to sync contacts and calendar with Google, it needs Google services installed.
 
 ## Phone setup (one time)
 
@@ -202,7 +214,7 @@ echo 'options v4l2loopback card_label="vivo Phone Camera" exclusive_caps=1' | su
 | `PCSUITE_REQUIRE_PHONE_UPDATE=1` | enforce vivo's minimum phone-app version (off by default, see Troubleshooting) |
 | `PCSUITE_CLASSIC_UI=1` | vivo's original window instead of the iTunes-style one (no music library) |
 | `PCSUITE_SHOW_CLOUD=1` | keep vivo's own cloud services and sign-in instead of the Google replacements |
-| `PCSUITE_WAYLAND=1` | don't force X11 (XWayland). The docked Office Kit pages need X11 window positioning |
+| `PCSUITE_WAYLAND=1` | don't force X11 (XWayland, the default) |
 | `PCSUITE_DEBUG=1` | verbose log |
 
 ## Troubleshooting
@@ -215,11 +227,11 @@ echo 'options v4l2loopback card_label="vivo Phone Camera" exclusive_caps=1' | su
   The Linux build skips that version check, so older phone versions connect anyway. If one feature misbehaves
   with an old phone version, `PCSUITE_REQUIRE_PHONE_UPDATE=1` turns the check back on.
 - **Phone drive doesn't appear**: install `fuse3`, and make sure `~/vivo Phone` is empty.
-- **Mirroring or keyboard & mouse windows open on their own**: fixed. They only open when you click them now. If
+- **Mirroring, keyboard & mouse or file manager windows open on their own**: fixed. They only open when you click them now. If
   a click in vivo's own page doesn't open one, use the buttons under *Devices* in the source list.
   `linux.log` shows each launch, and whether it was "requested by the user" or a vivo background start.
-- **Office Kit pages show up outside the window**: the docking needs X11. Don't set `PCSUITE_WAYLAND`, or use
-  `PCSUITE_CLASSIC_UI=1`.
+- **The phone doesn't connect to vivo's back end**: run with `PCSUITE_CLASSIC_UI=1` once to see vivo's own window,
+  and click *No network. Use USB connection* there.
 - **Google says "This browser or app may not be secure"**: Google sometimes blocks sign-in inside apps. Use
   *Open in Browser*, or try again later.
 - **Music library**: the library is stored in `~/.config/pcsuite/music/` (`library.json` and the artwork). Deleting it
@@ -242,9 +254,9 @@ echo 'options v4l2loopback card_label="vivo Phone Camera" exclusive_caps=1' | su
   `dragfile-linux.js`, `filesearch-linux.js`, `regedit-linux.js`, `db-init.js`, `dom-i18n.js`).
 - `port/itunes/`: the iTunes-style window. `main.js` creates the window and docks vivo's,
   `library.js`/`tags.js` hold the music library and the tag reader, `device.js` does phone info and music
-  sync over adb, and `ui/` is the interface.
+  sync over adb, `photos.js` the phone's photos and videos, and `ui/` is the interface.
 - `port/linux/google-services.js` replaces vivo's cloud cards with Google ones. `user-intent.js` +
-  `exe-dispatch.js` make sure phone windows only open on a click.
+  `exe-dispatch.js` make sure phone windows only open on a click, and `open-folder.js` opens folders in a real file manager.
 - `port/i18n/`: the English pack and its patcher. It only touches display text, and skips any string the code
   also compares against.
 

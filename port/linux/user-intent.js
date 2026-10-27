@@ -11,9 +11,10 @@ const MARK = '__vk_click__';
 const KINDS = {
   // order matters: "keyboard & mouse" items may also mention the screen
   keymouse: /keyboard|mouse|键鼠|键盘|鼠标|跨屏|cross.?device control/i,
+  drive: /explorer|open (in )?(the )?folder|phone drive|this pc|资源管理器|此电脑|打开文件夹|在文件夹中/i,
   mirror: /mirror|screen|projection|cast|投屏|镜像|屏幕|多屏|pc ?mode/i,
 };
-const last = { any: 0, keymouse: 0, mirror: 0 };
+const last = { any: 0, keymouse: 0, mirror: 0, drive: 0 };
 const listeners = new Set();
 let log = () => {};
 

@@ -19,10 +19,11 @@ function install(electron, log = () => {}) {
 
   const { Library } = require('./library.js');
   const { Devices } = require('./device.js');
+  const { Photos } = require('./photos.js');
   const google = require('../linux/google-services.js');
   let dispatch = null; try { dispatch = require('../linux/exe-dispatch.js'); } catch (_) {}
 
-  let win = null, vivo = null, lib = null, dev = null, gview = null, gkey = null;
+  let win = null, vivo = null, lib = null, dev = null, photos = null, gview = null, gkey = null;
   let pane = 'music', rect = null, quitting = false;
   const P = BrowserWindow.prototype;
   const send = (ch, d) => { if (win && !win.isDestroyed()) win.webContents.send(ch, d); };
@@ -54,7 +55,7 @@ function install(electron, log = () => {}) {
     P.hide.call(w);
     if (win) { P.setParentWindow.call(w, win); dock(); }
     w.on('closed', () => { vivo = null; if (!quitting && win && !win.isDestroyed()) { quitting = true; app.quit(); } });
-    w.webContents.on('dom-ready', () => tidyVivo());
+    w.webContents.on('dom-ready', () => { tidyVivo(); if (dev && dev.list.some(d => d.state === 'device')) vivoUsbConnect(); });
   }
   function reveal() {
     if (!win) return;
@@ -110,6 +111,29 @@ function install(electron, log = () => {}) {
       }
       return false;
     })();`, true).catch(() => {});
+  }
+
+  // ------------------------------------------------------------ vivo's connection back end
+  // vivo's window stays hidden: only its back end is used, so the phone connects the way it does on Windows.
+  // Its home page needs a click on "Use USB connection" before it talks to the phone over USB; that click is
+  // made here whenever a phone is plugged in (a few tries, while vivo's page finishes loading).
+  let usbTries = 0, usbTimer = null, usbClicked = 0;
+  function vivoUsbConnect() {
+    if (Date.now() - usbClicked < 30000) return;          // one click per plug-in
+    clearInterval(usbTimer); usbTries = 0;
+    const once = () => {
+      if (!vivo || vivo.isDestroyed() || ++usbTries > 12 || Date.now() - usbClicked < 30000) return clearInterval(usbTimer);
+      vivo.webContents.executeJavaScript(`(() => {
+        const RE = /^(No network\\. Use USB connection|Use USB connection|USB connection|使用USB连接|无网络，使用USB连接|USB连接)$/i;
+        if (window.__vkUsbAt && Date.now() - window.__vkUsbAt < 30000) return false;
+        for (const el of document.querySelectorAll('button,[role=button],div,span,a')) {
+          if (el.children.length > 2) continue;
+          if (RE.test((el.innerText || '').trim())) { window.__vkUsbAt = Date.now(); (el.closest('button,[role=button],a') || el).click(); return true; }
+        }
+        return false;
+      })()`, true).then(hit => { if (hit && Date.now() - usbClicked >= 30000) { usbClicked = Date.now(); log('vivo: clicked "Use USB connection"'); clearInterval(usbTimer); } }).catch(() => {});
+    };
+    usbTimer = setInterval(once, 5000); setTimeout(once, 1500);
   }
 
   // ------------------------------------------------------------ Google pane
@@ -209,6 +233,12 @@ function install(electron, log = () => {}) {
         const [kind, ...rest] = p.split('/'), arg = rest.join('/');
         if (kind === '~track') { const t = lib.track(arg); return t ? serve(req, t.path, cb) : cb({ statusCode: 404, data: null }); }
         if (kind === '~art') return serve(req, path.join(lib.artDir, path.basename(arg) + '.jpg'), cb, { 'Cache-Control': 'max-age=3600' });
+        if (kind === '~pthumb' || kind === '~pfull') {
+          const [serial, id] = rest;
+          const get = kind === '~pthumb' ? photos.thumb(serial, id) : photos.viewable(serial, id);
+          return get.then(f => f ? serve(req, f, cb, { 'Cache-Control': 'max-age=86400' }) : cb({ statusCode: 404, data: null }),
+            e => { log('photos: ' + e.message); cb({ statusCode: 502, data: null }); });
+        }
         if (kind === '~temp') { const f = temp.get(arg); return f ? serve(req, f, cb) : cb({ statusCode: 404, data: null }); }
         const f = path.normalize(path.join(UI, p || 'shell.html'));
         if (!f.startsWith(UI + path.sep)) return cb({ statusCode: 403, data: null });
@@ -262,11 +292,20 @@ function install(electron, log = () => {}) {
     });
     h('dev:preview', async (s, p) => { const f = await dev.pullTemp(s, p); const k = path.basename(f); temp.set(k, f); return 'vkmedia://app/~temp/' + encodeURIComponent(k); });
 
+    h('ph:list', s => photos.list(s));
+    h('ph:download', async (s, ids) => {
+      const d = dev.publicList().find(x => x.serial === s) || {};
+      const dest = path.join(app.getPath('pictures'), String(d.name || d.model || 'Phone').replace(/[\\/:*?"<>|]/g, '_'));
+      const files = await photos.download(s, ids, dest, pr => send('ph:progress', Object.assign({ serial: s }, pr)));
+      send('ph:progress', { serial: s, done: true, n: files.length, dest });
+      return { dest, files };
+    });
+    h('ph:remove', (s, ids) => photos.remove(s, ids));
+    h('ph:openFolder', d => require('../linux/open-folder.js').openFolder(d, log));
     h('app:pane', (p, r) => { if (r) rect = r; setPane(p); return true; });
     h('app:rect', r => { rect = r; layout(); });
     h('app:office', label => { officeNav(label); });
     h('app:launch', kind => {
-      if (kind === 'drive') { const d = process.env.PCSUITE_MOUNT_DIR || path.join(os.homedir(), 'vivo Phone'); return shell.openPath(d).then(e => !e); }
       return dispatch ? dispatch.launch(kind) : false;
     });
     h('app:win', a => {
@@ -294,8 +333,11 @@ function install(electron, log = () => {}) {
     try {
       lib = new Library(path.join(CFG, 'music'), { nativeImage, log });
       dev = new Devices(lib, { log });
+      photos = new Photos({ nativeImage, log, mountDir: () => { try { return require('../linux/phone-drive.js').defaultMount(); } catch (_) { return null; } } });
       lib.on((ev, d) => send(ev === 'tracks' ? 'lib:tracks' : 'lib:scan', d));
       dev.on((ev, d) => send(ev === 'devices' ? 'dev:devices' : 'dev:sync', d));
+      let hadPhone = false;
+      dev.on(ev => { if (ev !== 'devices') return; const now = dev.list.some(d => d.state === 'device'); if (now && !hadPhone) vivoUsbConnect(); hadPhone = now; });
       registerProtocol(); ipc(); createWindow();
       dev.start();
       setTimeout(() => lib.scan().catch(e => log('scan: ' + e.message)), 1500);

@@ -1,6 +1,4 @@
 #!/bin/sh
-# Linux stand-in for vivo's vdfs.exe ("phone as a drive"). The phone is mounted automatically by
-# the app (phone-drive.js); this just opens the mounted folder in the file manager.
-dir="${PCSUITE_MOUNT_DIR:-$HOME/vivo Phone}"
-[ -d "$dir" ] && exec xdg-open "$dir"
+# Linux stand-in for vivo's vdfs.exe ("phone as a drive"). The app mounts the phone itself (phone-drive.js) and
+# routes vdfs.exe launches through exe-dispatch.js, so this script is normally not run. Does nothing.
 exit 0

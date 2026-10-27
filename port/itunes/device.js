@@ -2,12 +2,14 @@
 // iTunes-style music sync, and browsing / importing / deleting music that's on the phone.
 //
 // Sync only ever touches files it put on the phone itself. It keeps a manifest at
-// /sdcard/Music/.vivo-officekit-sync.json; music you copied to the phone another way is never deleted.
+// /storage/emulated/0/Music/.vivo-officekit-sync.json; music you copied to the phone another way is never deleted.
 'use strict';
 const cp = require('child_process'), fs = require('fs'), fsp = fs.promises, path = require('path'), os = require('os'), crypto = require('crypto');
 
 const ADB = () => process.env.PCSUITE_ADB || 'adb';
-const MUSIC_ROOT = '/sdcard/Music';
+// The phone's internal storage. /sdcard points here too, but it's a symlink, so the real path is used everywhere.
+const STORAGE = '/storage/emulated/0';
+const MUSIC_ROOT = STORAGE + '/Music';
 const MANIFEST = MUSIC_ROOT + '/.vivo-officekit-sync.json';
 const PLAYLIST_DIR = MUSIC_ROOT + '/Playlists';
 const AUDIO_RE = /\.(mp3|m4a|aac|flac|ogg|oga|opus|wav|wma|amr|mid|midi|ape|m4b)$/i;
@@ -24,6 +26,43 @@ function adb(serial, args, { timeout = 30000, encoding = 'utf8', maxBuffer = 64 
 }
 const sh = (serial, cmd, o) => adb(serial, ['shell', cmd], o);
 const clean = s => String(s || '').replace(/[\\/:*?"<>|\x00-\x1f]/g, '_').replace(/^[.\s]+|[.\s]+$/g, '').slice(0, 80) || '_';
+
+const clean0 = v => (v == null || v === 'NULL' || v === '<unknown>') ? '' : String(v);
+/** /sdcard/x, /storage/self/primary/x -> /storage/emulated/0/x (the one path the app and the sync list use) */
+const phonePath = p => String(p).replace(/^\/(sdcard|storage\/self\/primary|mnt\/sdcard)(?=\/|$)/, STORAGE);
+/** `content query` on the phone. Returns rows as objects, or null when the media index can't be read.
+ *  Values may contain ", " so each row is split at the known ", key=" markers, in projection order. */
+async function contentQuery(serial, uri, keys, where) {
+  let out;
+  try { out = await sh(serial, `content query --uri ${uri} --projection ${keys.join(':')}${where ? ` --where ${q(where)}` : ''}`, { timeout: 120000, maxBuffer: 256 << 20 }); }
+  catch (_) { return null; }
+  if (!/^Row: /m.test(out)) return /No result found/i.test(out) ? [] : null;
+  const rows = [];
+  for (const line of out.split(/\r?\n(?=Row: \d+ )/)) {
+    const m = line.match(/^Row: \d+ ([\s\S]*)$/); if (!m) continue;
+    const body = m[1].replace(/\r?\n$/, ''), r = {};
+    let pos = 0;
+    for (let i = 0; i < keys.length; i++) {
+      const start = i === 0 ? body.indexOf(keys[0] + '=') : body.indexOf(', ' + keys[i] + '=', pos);
+      if (start < 0) continue;
+      const vs = start + (i === 0 ? 0 : 2) + keys[i].length + 1;
+      let end = body.length;
+      for (let j = i + 1; j < keys.length; j++) { const e = body.indexOf(', ' + keys[j] + '=', vs); if (e >= 0) { end = e; break; } }
+      r[keys[i]] = body.slice(vs, end); pos = end;
+    }
+    rows.push(r);
+  }
+  return rows;
+}
+/** Files under `base` with the given extensions -> [{ path, size, mtime }]. `find` runs from inside the folder,
+ *  so it works even when the folder is reached through a symlink (find doesn't descend into one given as its start). */
+// `; true`: find exits non-zero when it meets a folder it may not read, and adb passes that on as a failure.
+async function findFiles(serial, exts, extra = '', dirs = '.', base = STORAGE) {
+  const names = exts.map(e => `-iname '*.${e}'`).join(' -o ');
+  const out = await sh(serial, `cd ${q(base + '/')} && find ${dirs} -path ./Android -prune -o -type f ${extra} \\( ${names} \\) -exec stat -c '%s %Y %n' {} + 2>/dev/null; true`, { timeout: 180000, maxBuffer: 256 << 20 });
+  return out.split('\n').map(l => l.match(/^(\d+) (\d+) (.+)$/)).filter(Boolean)
+    .map(m => ({ path: base + '/' + m[3].replace(/^\.\//, ''), size: +m[1], mtime: +m[2] * 1000 }));
+}
 
 class Devices {
   constructor(library, { log, cacheDir } = {}) {
@@ -81,8 +120,8 @@ class Devices {
     } catch (_) {}
     if (withUsage) {
       try {
-        const du = await sh(serial, 'du -sk /sdcard/Music /sdcard/DCIM /sdcard/Pictures /sdcard/Movies /sdcard/Download /sdcard/Documents 2>/dev/null', { timeout: 45000 });
-        const u = {}; for (const l of du.trim().split('\n')) { const [k, p] = l.split(/\s+/); if (p) u[p.replace('/sdcard/', '')] = +k * 1024; }
+        const du = await sh(serial, `cd ${STORAGE} && du -sk Music DCIM Pictures Movies Download Documents 2>/dev/null; true`, { timeout: 45000 });
+        const u = {}; for (const l of du.trim().split('\n')) { const [k, p] = l.split(/\s+/); if (p) u[p.replace(/^\.?\//, '')] = +k * 1024; }
         info.usage = { audio: u.Music || 0, photos: (u.DCIM || 0) + (u.Pictures || 0), video: u.Movies || 0, documents: (u.Download || 0) + (u.Documents || 0) };
       } catch (_) {}
     }
@@ -92,14 +131,29 @@ class Devices {
 
   // ------------------------------------------------------------ music on the phone
   async phoneMusic(serial) {
-    const out = await sh(serial, `find /sdcard -path /sdcard/Android -prune -o -type f -size +40k \\( ${['mp3', 'm4a', 'aac', 'flac', 'ogg', 'opus', 'wav', 'wma', 'amr', 'ape', 'm4b'].map(e => `-iname '*.${e}'`).join(' -o ')} \\) -exec stat -c '%s %Y %n' {} + 2>/dev/null`, { timeout: 120000 });
     const manifest = await this.readManifest(serial);
-    return out.split('\n').map(l => l.match(/^(\d+) (\d+) (.+)$/)).filter(Boolean).map(m => {
-      const p = m[3], own = manifest.files[p];
-      const name = path.basename(p).replace(/\.[^.]+$/, '');
-      const parts = p.split('/');
-      return { path: p, size: +m[1], mtime: +m[2] * 1000, title: own ? own.title : name.replace(/^\d+[\s.\-_]+/, ''), artist: own ? own.artist : (parts.length > 5 && p.startsWith(MUSIC_ROOT) ? parts[parts.length - 3] : ''), album: own ? own.album : '', synced: !!own };
-    }).filter(f => !/\/(Recordings?|Record|Sounds|Notifications|Ringtones|Alarms|Call)\b/i.test(f.path) || f.size > 2e6);
+    // Android's media index has the real tags; fall back to listing files if it can't be read
+    let rows = await contentQuery(serial, 'content://media/external/audio/media', ['_data', 'title', 'artist', 'album', 'duration', '_size', 'date_modified', 'is_music']);
+    let files;
+    if (rows && rows.length) {
+      // only the phone's Music folder: that's what sync writes to and what "On My Phone" shows
+      files = rows.filter(r => r._data && phonePath(r._data).startsWith(MUSIC_ROOT + '/') && !/\/Playlists\/[^/]+\.m3u8?$/i.test(r._data)).map(r => ({
+        path: phonePath(r._data), size: +r._size || 0, mtime: (+r.date_modified || 0) * 1000, duration: (+r.duration || 0) / 1000,
+        title: clean0(r.title), artist: clean0(r.artist), album: clean0(r.album),
+      }));
+    } else {
+      const out = await findFiles(serial, ['mp3', 'm4a', 'aac', 'flac', 'ogg', 'opus', 'wav', 'wma', 'amr', 'ape', 'm4b'], '', '.', MUSIC_ROOT);
+      files = out.map(f => {
+        const name = path.basename(f.path).replace(/\.[^.]+$/, ''), parts = f.path.split('/');
+        return Object.assign(f, { title: name.replace(/^\d+[\s.\-_]+/, ''), artist: parts.length > 5 && f.path.startsWith(MUSIC_ROOT) ? parts[parts.length - 3] : '', album: '' });
+      });
+    }
+    for (const f of files) {
+      const own = manifest.files[f.path];
+      if (own) Object.assign(f, { title: own.title || f.title, artist: own.artist || f.artist, album: own.album || f.album });
+      f.synced = !!own;
+    }
+    return files;
   }
   async deleteFromPhone(serial, paths) {
     const manifest = await this.readManifest(serial);
@@ -115,7 +169,7 @@ class Devices {
     const out = [];
     for (let i = 0; i < items.length; i++) {
       const p = items[i];
-      const rel = p.startsWith(MUSIC_ROOT + '/') ? p.slice(MUSIC_ROOT.length + 1) : p.replace(/^\/sdcard\/?/, '');
+      const rel = p.startsWith(MUSIC_ROOT + '/') ? p.slice(MUSIC_ROOT.length + 1) : p.replace(STORAGE + '/', '');
       const local = path.join(dest, ...rel.split('/').map(clean));
       progress({ step: 'Importing', i: i + 1, n: items.length, title: path.basename(p) });
       if (fs.existsSync(local)) { out.push(local); continue; }
@@ -134,8 +188,14 @@ class Devices {
 
   // ------------------------------------------------------------ sync
   async readManifest(serial) {
-    try { const j = JSON.parse(await adb(serial, ['exec-out', `cat ${q(MANIFEST)} 2>/dev/null`], { timeout: 20000 })); if (j && j.files) return Object.assign({ playlists: [] }, j); } catch (_) {}
-    return { version: 1, files: {}, playlists: [] };
+    let j = null;
+    for (const f of [MANIFEST, '/sdcard/Music/.vivo-officekit-sync.json']) {
+      try { j = JSON.parse(await adb(serial, ['exec-out', `cat ${q(f)} 2>/dev/null`], { timeout: 20000 })); if (j && j.files) break; } catch (_) { j = null; }
+    }
+    if (!j || !j.files) return { version: 1, files: {}, playlists: [] };
+    // lists written by the first version used /sdcard/... paths: same files, so convert instead of copying again
+    const files = {}; for (const [k, v] of Object.entries(j.files)) files[phonePath(k)] = v;
+    return Object.assign({ playlists: [] }, j, { files, playlists: (j.playlists || []).map(phonePath) });
   }
   async writeManifest(serial, m) {
     const tmp = path.join(os.tmpdir(), `vk-manifest-${process.pid}.json`);
@@ -199,7 +259,7 @@ class Devices {
       // what's actually on the phone under Music (sizes), so files deleted on the phone get copied again
       let onPhone = {};
       try {
-        const out = await sh(serial, `find ${q(MUSIC_ROOT)} -type f -exec stat -c '%s %n' {} + 2>/dev/null`, { timeout: 120000 });
+        const out = await sh(serial, `find ${q(MUSIC_ROOT)} -type f -exec stat -c '%s %n' {} + 2>/dev/null; true`, { timeout: 120000 });
         for (const l of out.split('\n')) { const m = l.match(/^(\d+) (.+)$/); if (m) onPhone[m[2]] = +m[1]; }
       } catch (_) {}
       stopIfCancelled();
@@ -304,4 +364,4 @@ class Devices {
 const gb = n => (n / 1e9).toFixed(2) + ' GB';
 function albumId(t) { return ((t.compilation ? 'Compilations' : (t.albumArtist || t.artist)) || '') + '\u0001' + (t.album || ''); }
 
-module.exports = { Devices, albumId, MUSIC_ROOT };
+module.exports = { Devices, albumId, MUSIC_ROOT, contentQuery, findFiles, phonePath, adb, sh };

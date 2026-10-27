@@ -7,8 +7,7 @@
 //   Notes cloud sync                 -> Google Keep
 //   Cloud Drive                      -> Google Drive
 //   Albums cloud backup              -> Google Photos
-//   Find device                      -> Google Find My Device
-//   vivo account avatar / "Sign in to auto-connect" / Browser sync / spam blocking / "sign in and turn on sync" -> hidden
+//   vivo account avatar / "Sign in to auto-connect" / Find device / Browser sync / spam blocking / "sign in and turn on sync" -> hidden
 //   (no Google web equivalent for browser sync or spam blocking)
 //
 // Google pages open inside the music window (one persistent Google sign-in, see itunes/main.js) or, with
@@ -23,7 +22,6 @@ const SERVICES = {
   keep: { name: 'Google Keep', url: 'https://keep.google.com/', desc: 'Notes and checklists in the cloud' },
   drive: { name: 'Google Drive', url: 'https://drive.google.com/', desc: 'Files in the cloud' },
   photos: { name: 'Google Photos', url: 'https://photos.google.com/', desc: 'Photo backup and albums' },
-  find: { name: 'Find My Device', url: 'https://www.google.com/android/find', desc: 'Locate, ring or lock your phone' },
 };
 const MARK = '__vk_google__';
 
@@ -35,7 +33,6 @@ const ICONS = {
   keep: ['#e0a800', '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3z"/>'],
   drive: ['#188038', '<path d="M8.5 4h7l5 8.5-3.5 6h-10L3.5 12.5z"/><path d="M8.5 4l5 8.5h7M3.5 12.5h10l-3.5 6"/>'],
   photos: ['#d93025', '<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M4 17l5-4.5 3.5 3 3-2.5 4.5 4"/>'],
-  find: ['#5f6368', '<path d="M12 21s6.5-5.6 6.5-11a6.5 6.5 0 0 0-13 0c0 5.4 6.5 11 6.5 11z"/><circle cx="12" cy="10" r="2.4"/>'],
 };
 const icon = (k, size = 28) => `<span style="display:inline-flex;align-items:center;justify-content:center;width:${size + 16}px;height:${size + 16}px;border-radius:12px;background:${ICONS[k][0]}"><svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[k][1]}</svg></span>`;
 
@@ -51,11 +48,11 @@ const script = `(() => {
     [/^(Events|日程)$/i, 'calendar'],
     [/^(To-?dos|待办)$/i, 'tasks'],
     [/^(Cloud Drive|云盘)$/i, 'drive'],
-    [/^(Find device|Find my phone|查找设备)$/i, 'find'],
+    [/^(Find device|Find my phone|查找设备)$/i, ''],
   ];
   // single cloud items (tiles/menu entries) -> Google service, '' = hide
   const ITEMS = [
-    [/^(Contacts|联系人)$/i, 'contacts'], [/^(Cloud Drive|云盘)$/i, 'drive'], [/^(Find device|查找设备)$/i, 'find'],
+    [/^(Contacts|联系人)$/i, 'contacts'], [/^(Cloud Drive|云盘)$/i, 'drive'], [/^(Find device|查找设备)$/i, ''],
     [/^(Browser|浏览器)$/i, ''], [/^(Spam blocking|骚扰拦截)$/i, ''], [/^(Cloud (space|storage|services?)|云空间|云服务)$/i, ''],
   ];
   const LOGIN_TEXT = /^(Sign in|Log in|Login|Sign in to .*|Log in to .*|登录.*|立即登录|账号登录)$/i;
@@ -105,7 +102,7 @@ const script = `(() => {
     box.appendChild(h);
     if (kind === 'grid') {
       const g = document.createElement('div'); g.style.cssText = 'display:flex;flex-wrap:wrap;gap:14px 6px';
-      for (const k of ['contacts', 'calendar', 'tasks', 'keep', 'drive', 'photos', 'find']) g.appendChild(tile(k));
+      for (const k of ['contacts', 'calendar', 'tasks', 'keep', 'drive', 'photos']) g.appendChild(tile(k));
       box.appendChild(g);
     } else {
       const r = document.createElement('div'); r.style.cssText = 'display:flex;align-items:center;gap:14px;cursor:pointer';
@@ -124,7 +121,7 @@ const script = `(() => {
       if (c) {
         const box = card(el);
         // "Events"/"To-dos" only as the home-page cloud cards (which ask you to sign in), never inside Calendar itself
-        if (box && (c[1] === 'grid' || c[1] === 'drive' || c[1] === 'find' || /sign in|log in|sync|登录|同步/i.test(box.innerText || ''))) { hide(box); replace(box, el, c[1]); }
+        if (box && (c[1] === 'grid' || c[1] === 'drive' || !c[1] || /sign in|log in|sync|登录|同步/i.test(box.innerText || ''))) { hide(box); if (c[1]) replace(box, el, c[1]); }
         continue;
       }
       const it = ITEMS.find(([re]) => re.test(t));

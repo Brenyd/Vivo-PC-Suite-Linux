@@ -68,19 +68,19 @@ const HANDLERS = {
   // call handoff window (phonecall/phoneCall.exe) -> in-app call card driven over adb (phone-call.js)
   'phonecall.exe': args => { const pc = require('./phone-call.js'); pc.setLogger(log); return { proc: pc.open(args) }; },
   // phone drive
-  'vdfs.exe': () => {
-    const dir = (require('./phone-drive.js').defaultMount()) || path.join(os.homedir(), 'vivo Phone');
-    return fs.existsSync(dir) ? ['xdg-open', [dir]] : null;
-  },
+  // phone drive. vivo starts vdfs (its Dokan drive service) by itself at launch and restarts it when it exits;
+  // the drive is mounted automatically here, so a folder window only opens when the user asked for one.
+  'vdfs.exe': () => ({ kind: 'drive' }),
 };
 
-// ---- windows that need a user request (screen mirroring, keyboard & mouse)
+// ---- windows that need a user request (screen mirroring, keyboard & mouse, the phone drive folder)
 const SCRCPY = {
   mirror: { args: ['--window-title', 'vivo phone', '--stay-awake'], what: 'Screen mirroring' },
   keymouse: { args: ['--keyboard=uhid', '--mouse=uhid', '--max-size=1024', '--window-title', 'vivo keyboard & mouse'], what: 'Keyboard & mouse' },
 };
-const running = { mirror: null, keymouse: null };     // the real scrcpy window per kind
-const held = { mirror: new Set(), keymouse: new Set() }; // stand-ins given to vivo for launches nobody asked for
+const running = { mirror: null, keymouse: null, drive: null };     // the real scrcpy window per kind
+const held = { mirror: new Set(), keymouse: new Set(), drive: new Set() }; // stand-ins given to vivo for launches nobody asked for
+function driveDir() { try { return require('./phone-drive.js').defaultMount(); } catch (_) { return null; } }
 let intent = null;
 
 /** A do-nothing process that lives as long as the app (or until killed), so vivo sees its helper "running"
@@ -95,6 +95,12 @@ function releaseHeld(kind) { for (const p of held[kind]) { try { p.kill(); } cat
 
 /** Open (or focus) the real window for `kind`. Returns the process, or null. */
 function open(kind, opts) {
+  if (kind === 'drive') {
+    const dir = driveDir() || process.env.PCSUITE_MOUNT_DIR || path.join(os.homedir(), 'vivo Phone');
+    if (!fs.existsSync(dir)) { notify('Phone drive', 'The phone isn\'t mounted yet. Connect it with USB (USB debugging on).'); return null; }
+    require('./open-folder.js').openFolder(dir, log);
+    return placeholder(null);
+  }
   if (running[kind]) return running[kind];
   const s = scrcpy(SCRCPY[kind].args, SCRCPY[kind].what);
   if (!s) return null;
@@ -119,7 +125,7 @@ function resolveHandler(cmd, args) {
   cmd = cmd.replace(/^"|"$/g, '');
   const base = path.basename(cmd).toLowerCase();
   // phone windows go through the user-request guard first, even though PCMode.exe is also a script here
-  const GUARDED = ['pcmode.exe', 'vivoscreen.exe', 'vscreen.exe', 'vivorelay.exe', 'vrelay.exe', 'keymouse.exe'];
+  const GUARDED = ['pcmode.exe', 'vivoscreen.exe', 'vscreen.exe', 'vivorelay.exe', 'vrelay.exe', 'keymouse.exe', 'vdfs.exe'];
   if (GUARDED.includes(base)) return HANDLERS[base](args);
   // our own executable scripts (pc_toast.exe, pcsuite_.exe, ...) keep working as-is
   try { const head = fs.readFileSync(cmd, { encoding: 'latin1' }).slice(0, 2); if (head === '#!') return null; } catch (_) {}

@@ -254,7 +254,7 @@ function lcdProgress() {
 }
 
 // ================================================================ routing
-const GROUPS = { library: ['recent', 'artists', 'albums', 'songs', 'genres', 'album', 'genre', 'playlist', 'search'], phone: ['device'], office: ['office'], google: ['google'] };
+const GROUPS = { library: ['recent', 'artists', 'albums', 'songs', 'genres', 'album', 'genre', 'playlist', 'search'], phone: ['device'], google: ['google'] };
 const groupOf = r => Object.keys(GROUPS).find(g => GROUPS[g].includes(r.split(':')[0])) || 'library';
 function go(route, { replace, noHistory } = {}) {
   if (route === S.route) return render();
@@ -269,7 +269,7 @@ function render() {
   const pane = kind === 'office' ? 'office' : kind === 'google' ? 'google:' + arg : 'music';
   vk.appPane(pane, mainRect());
   if (kind === 'office') vk.appOffice(arg || 'home');
-  const v = $('#view'); v.innerHTML = ''; v.scrollTop = 0; v.onscroll = null; v.style.overflow = ''; $('#status').textContent = '';
+  const v = $('#view'); v.innerHTML = ''; v.className = 'view'; v.scrollTop = 0; v.onscroll = null; v.style.overflow = ''; $('#status').textContent = '';
   document.querySelectorAll('#devbar').forEach(x => x.remove()); TBL = null;
   const fn = { recent: viewRecent, artists: viewArtists, albums: viewAlbums, songs: viewSongs, genres: viewGenres, album: viewAlbum, genre: viewGenre,
     playlist: viewPlaylist, search: viewSearch, device: viewDevice, office: viewOffice, google: viewGoogle }[kind] || viewAlbums;
@@ -289,19 +289,18 @@ function connectedDevice() { return S.devices.find(d => d.state === 'device') ||
 function renderSub() {
   $('#backBtn').disabled = !S.back.length; $('#fwdBtn').disabled = !S.fwd.length;
   const g = groupOf(S.route);
-  const names = { library: ['note', 'Music'], phone: ['phone', 'Phone'], office: ['home', 'Office Kit'], google: ['g_drive', 'Google'] };
+  const names = { library: ['note', 'Music'], phone: ['phone', 'Phone'], google: ['g_drive', 'Google'] };
   $('#picker').innerHTML = `${I[names[g][0]](14)}<span>${names[g][1]}</span>${I.down(11)}`;
   const d = connectedDevice(), chip = $('#devchip');
   chip.hidden = !d; if (d) { chip.innerHTML = I.phone(15) + `<span style="font-size:12px">${esc(d.name || d.model || 'Phone')}</span>`; chip.classList.toggle('active', g === 'phone'); chip.title = d.name || ''; }
   const tabs = $('#tabs'); tabs.innerHTML = '';
-  for (const [k, label] of [['library', 'Library'], ['phone', 'Phone'], ['office', 'Office Kit'], ['google', 'Google']])
+  for (const [k, label] of [['library', 'Library'], ['phone', 'Phone'], ['google', 'Google']])
     tabs.append(h('button', { class: g === k ? 'on' : '', disabled: k === 'phone' && !d, onclick: () => goGroup(k) }, label));
 }
 function goGroup(k) {
   const d = connectedDevice();
   if (k === 'library') go(S.lastLib || 'albums');
-  else if (k === 'phone') d ? go(`device:${d.serial}:summary`) : go('office:connect');
-  else if (k === 'office') go('office:home');
+  else if (k === 'phone') go(d ? `device:${d.serial}:summary` : 'device:none:summary');
   else if (k === 'google') go('google:' + (S.lastGoogle || 'calendar'));
 }
 
@@ -329,19 +328,15 @@ function renderSide() {
     s.append(sideItem('phone', d.name || d.model || 'Phone', base + ':summary', { badge: d.battery != null ? d.battery + '%' : null }));
     s.append(sideItem('info', 'Summary', base + ':summary', { ind: true }), sideItem('note', 'Music', base + ':music', { ind: true }),
       sideItem('list', 'On My Phone', base + ':onphone', { ind: true }),
-      sideItem('photos', 'Photos', 'office:albums', { ind: true }), sideItem('notes', 'Notes', 'office:notes', { ind: true }),
-      sideItem('calendar', 'Calendar', 'office:calendar', { ind: true }), sideItem('recorder', 'Recorder', 'office:recorder', { ind: true }),
+      sideItem('photos', 'Photos', base + ':photos', { ind: true }),
       sideItem('folder', 'Files', '', { ind: true, onclick: () => vk.appLaunch('drive').then(ok => ok || toast('The phone drive (~/vivo Phone) isn\'t mounted yet')) }),
       sideItem('mirror', 'Screen Mirroring', '', { ind: true, onclick: () => vk.appLaunch('mirror').then(ok => ok || toast('Screen mirroring needs scrcpy and a phone connected with USB debugging')) }),
       sideItem('keyboard', 'Keyboard & Mouse', '', { ind: true, onclick: () => vk.appLaunch('keymouse').then(ok => ok || toast('Keyboard & mouse needs scrcpy and a phone connected with USB debugging')) }));
-  } else if (!others.length && !S.adbMissing) s.append(sideItem('connect', 'Connect a phone…', 'office:connect', { dim: true }));
+  } else if (!others.length && !S.adbMissing) s.append(sideItem('connect', 'Connect a phone…', 'device:none:summary', { dim: true }));
 
-  s.append(h('h4', {}, 'Office Kit'), sideItem('home', 'Home', 'office:home'), sideItem('connect', 'Connect', 'office:connect'),
-    ...(d ? [] : [sideItem('notes', 'Notes', 'office:notes'), sideItem('calendar', 'Calendar', 'office:calendar'), sideItem('photos', 'Albums', 'office:albums'), sideItem('recorder', 'Recorder', 'office:recorder')]),
-    sideItem('tools', 'Tools', 'office:tools'), sideItem('settings', 'Settings', 'office:settings'));
 
   s.append(h('h4', {}, 'Google'));
-  for (const k of ['contacts', 'calendar', 'tasks', 'keep', 'drive', 'photos', 'find']) if (S.services[k]) s.append(sideItem('g_' + k, S.services[k].name.replace(/^Google /, ''), 'google:' + k, { title: S.services[k].name }));
+  for (const k of ['contacts', 'calendar', 'tasks', 'keep', 'drive', 'photos']) if (S.services[k]) s.append(sideItem('g_' + k, S.services[k].name.replace(/^Google /, ''), 'google:' + k, { title: S.services[k].name }));
 
   const add = h('button', { class: 'ibtn', title: 'New Playlist', html: I.plus(13), onclick: e => menu(e, [{ label: 'New Playlist', k: 'Ctrl+N', fn: () => newPlaylist() }, { label: 'New Smart Playlist…', fn: () => smartDialog() }]) });
   s.append(h('h4', {}, 'Music Playlists', add));
@@ -756,6 +751,7 @@ function viewDevice(v, arg) {
   const [serial, page] = arg.split(':'); const d = deviceBy(serial);
   if (!d || d.state !== 'device') { v.append(h('div', { class: 'empty' }, h('div', { html: I.phone(56) }), h('h2', {}, 'Phone not connected'), h('div', {}, 'Connect your phone with USB and allow USB debugging.'))); return; }
   if (page === 'onphone') return viewOnPhone(v, d);
+  if (page === 'photos') return viewPhotos(v, d);
   const pg = h('div', { class: 'devpage' }); v.append(pg);
   if (page === 'music') musicPage(pg, d); else summaryPage(pg, d);
   const bar = h('div', { class: 'devbar', id: 'devbar' }); $('#main').append(bar); bar.dataset.serial = serial;
@@ -785,7 +781,7 @@ function summaryPage(pg, d) {
       h('button', { class: 'btn', onclick: () => vk.appLaunch('drive') }, h('span', { html: I.folder(13) }), 'Open Phone Drive'),
       h('button', { class: 'btn', onclick: () => vk.appLaunch('mirror') }, h('span', { html: I.mirror(13) }), 'Screen Mirroring'),
       h('button', { class: 'btn', onclick: () => vk.appLaunch('keymouse') }, h('span', { html: I.keyboard(13) }), 'Keyboard & Mouse'),
-      h('button', { class: 'btn', onclick: () => go('office:albums') }, h('span', { html: I.photos(13) }), 'Photo Backup'))));
+      h('button', { class: 'btn', onclick: () => go(`device:${d.serial}:photos`) }, h('span', { html: I.photos(13) }), 'Photos & Videos'))));
 }
 function musicPage(pg, d) {
   const s = devSettings(d.serial);
@@ -865,7 +861,7 @@ async function viewOnPhone(v, d) {
     album: { w: 'minmax(100px,1fr)', label: 'Album', sort: (a, b) => coll.compare(a.album, b.album) },
     size: { w: '80px', label: 'Size', cls: 'dur', get: f => fmtBytes(f.size), sort: (a, b) => a.size - b.size },
     synced: { w: '70px', label: 'Source', get: f => f.synced ? '<span class="tag">synced</span>' : '', html: true, sort: (a, b) => (b.synced ? 1 : 0) - (a.synced ? 1 : 0) },
-    path: { w: 'minmax(140px,1.6fr)', label: 'Location', get: f => f.path.replace(/^\/sdcard\//, ''), sort: (a, b) => coll.compare(a.path, b.path) },
+    path: { w: 'minmax(140px,1.6fr)', label: 'Location', get: f => f.path.replace(/^\/(storage\/emulated\/0|sdcard)\//, ''), sort: (a, b) => coll.compare(a.path, b.path) },
   };
   if (!PC[S.sort.key]) S.sort = { key: 'path', dir: 1 };
   table(v, items, { cols: ['title', 'artist', 'album', 'size', 'synced', 'path'], colDefs: PC, keyOf: f => f.path,
@@ -1114,7 +1110,7 @@ function wire() {
   $('#backBtn').innerHTML = I.back(13); $('#fwdBtn').innerHTML = I.fwd(13);
   $('#backBtn').onclick = () => { if (!S.back.length) return; S.fwd.push(S.route); go(S.back.pop(), { noHistory: true }); };
   $('#fwdBtn').onclick = () => { if (!S.fwd.length) return; S.back.push(S.route); go(S.fwd.pop(), { noHistory: true }); };
-  $('#picker').onclick = e => menu(null, [{ label: 'Music', fn: () => goGroup('library') }, { label: 'Phone', disabled: !connectedDevice(), fn: () => goGroup('phone') }, { label: 'Office Kit', fn: () => goGroup('office') }, { label: 'Google', fn: () => goGroup('google') }],
+  $('#picker').onclick = e => menu(null, [{ label: 'Music', fn: () => goGroup('library') }, { label: 'Phone', disabled: !connectedDevice(), fn: () => goGroup('phone') }, { label: 'Google', fn: () => goGroup('google') }],
     { x: e.currentTarget.getBoundingClientRect().left, y: e.currentTarget.getBoundingClientRect().bottom + 2 });
   $('#devchip').onclick = () => goGroup('phone');
   let st = 0;

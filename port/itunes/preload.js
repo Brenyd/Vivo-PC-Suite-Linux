@@ -6,6 +6,7 @@ const api = {};
 for (const ch of ['lib:get', 'lib:scan', 'lib:addFolder', 'lib:addFiles', 'lib:addPaths', 'lib:removeFolder', 'lib:update', 'lib:editTags', 'lib:setArtwork',
   'lib:remove', 'lib:played', 'lib:skipped', 'lib:setPlaylists', 'lib:setSettings', 'lib:show', 'lib:openFolder',
   'dev:list', 'dev:refresh', 'dev:settings', 'dev:plan', 'dev:sync', 'dev:cancel', 'dev:phoneMusic', 'dev:delete', 'dev:import', 'dev:preview',
+  'ph:list', 'ph:download', 'ph:remove', 'ph:openFolder',
   'app:pane', 'app:rect', 'app:office', 'app:launch', 'app:win', 'app:google', 'app:external', 'app:logs'])
   api[ch.replace(/:(\w)/, (_, c) => c.toUpperCase())] = call(ch);
 api.on = (ch, f) => { const l = (_e, d) => f(d); ipcRenderer.on(ch, l); return () => ipcRenderer.removeListener(ch, l); };
