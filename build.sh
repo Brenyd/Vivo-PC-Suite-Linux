@@ -89,6 +89,7 @@ NODE "$KIT/port/i18n/apply-english.js" "$WORK/app" "$APP"
 
 cp "$KIT/port/linux-boot.js" "$APP/"
 mkdir -p "$APP/linux" && cp -a "$KIT/port/linux/." "$APP/linux/"
+mkdir -p "$APP/itunes" && cp -a "$KIT/port/itunes/." "$APP/itunes/"
 mkdir -p "$APP/i18n-data"
 cp "$KIT/port/i18n/"{en-dict,dom-extra,dom-substrings,dom-rules}.json "$APP/i18n-data/"
 NODE -e '
@@ -151,6 +152,7 @@ echo
 command -v adb >/dev/null || warn "adb not found — needed to talk to the phone: sudo pacman -S android-tools android-udev"
 command -v scrcpy >/dev/null || warn "scrcpy not found — needed for screen mirroring: sudo pacman -S scrcpy"
 command -v fusermount3 >/dev/null || command -v fusermount >/dev/null || warn "FUSE not found — needed for the phone drive (~/vivo Phone): sudo pacman -S fuse3"
+command -v ffmpeg >/dev/null || warn "ffmpeg not found — needed to edit song tags, read some formats and convert songs for the phone: sudo pacman -S ffmpeg"
 command -v notify-send >/dev/null || warn "notify-send not found — optional, for desktop notifications: sudo pacman -S libnotify"
 [ -e /sys/module/v4l2loopback ] || echo "   (optional) phone camera as webcam: sudo pacman -S v4l2loopback-dkms && sudo modprobe v4l2loopback card_label=\"vivo Phone Camera\" exclusive_caps=1"
 say "Done. Start it from the app menu, or run: vivo-pcsuite"
