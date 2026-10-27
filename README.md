@@ -7,6 +7,20 @@ Windows-only helper programs are replaced with Linux implementations: a FUSE pho
 adb, a call-handoff window, scrcpy mirroring and more. It's aimed at vivo phones (including China models)
 that don't do normal USB/MTP file transfer.
 
+The app opens in an **iTunes-style window**: a music library and player, iTunes-style music sync to the phone,
+vivo's own Office Kit pages, and Google services in place of vivo's cloud.
+
+<p align="center"><img src="docs/screenshots/itunes-library.png" width="860" alt="iTunes-style music library"></p>
+
+| | |
+|---|---|
+| <img src="docs/screenshots/itunes-album.png" alt="Album"> | <img src="docs/screenshots/phone-summary.png" alt="Phone summary"> |
+| **Album view and player** | **Phone summary and sync options** |
+| <img src="docs/screenshots/phone-music.png" alt="Music on the phone"> | <img src="docs/screenshots/office-kit-google.png" alt="Office Kit with Google services"> |
+| **Music on the phone** | **Office Kit home, with Google instead of vivo cloud** |
+
+vivo's own pages (shown with `PCSUITE_CLASSIC_UI=1`, vivo's original window):
+
 <p align="center"><img src="docs/screenshots/home.png" width="860" alt="Home screen on Linux"></p>
 
 | | |
@@ -41,7 +55,7 @@ Tested with vivo PC Suite **7.0.6**.
 ## Install (CachyOS / Arch)
 
 ```bash
-sudo pacman -S --needed android-tools android-udev scrcpy fuse3 libnotify python git
+sudo pacman -S --needed android-tools android-udev scrcpy ffmpeg fuse3 libnotify python git
 git clone https://github.com/Brenyd/Vivo-PC-Suite-Linux.git
 cd Vivo-PC-Suite-Linux
 ./build.sh "/path/to/your/pcsuite"   # the installed Windows folder, or a .zip of it
@@ -65,6 +79,65 @@ Options:
 - `--prefix DIR`
 - `--no-desktop`
 
+## The iTunes-style window
+
+The window has iTunes' toolbar (transport controls, volume, the LCD showing what's playing or the sync
+progress, shuffle, repeat, Up Next and search) and a source list with four groups. The tabs at the top jump
+between them.
+
+**Library (music).** Your music folder (`~/Music` by default; add more under *Preferences*) is scanned
+automatically: MP3, AAC/M4A, ALAC, FLAC, Ogg Vorbis, Opus, WAV and more, with tags and album artwork (embedded
+or `cover.jpg`/`folder.jpg`).
+
+- Views: Albums (with a colored album page), Artists, Songs (sortable columns), Genres and Recently Added.
+- Playback: shuffle, repeat one/all, Up Next (Play Next / Add to Up Next) and a 10-band equalizer with
+  iTunes' presets. Ratings, Love, and play and skip counts. Desktop media keys and KDE's media controls work
+  through MPRIS.
+- Playlists: create, rename, drag songs in, and reorder. Smart Playlists have rules (match all/any, a limit,
+  live updating). 90's Music, Recently Played, Top 25 Most Played, My Top Rated and Loved are
+  set up for you.
+- Get Info: edit tags for one or many songs, change the artwork, and write the tags into the files (needs ffmpeg).
+- Add music with *File → Add Folder / Add Files*, or drag it onto the window.
+
+**Phone (devices).** A connected phone appears under *Devices*, the way an iPod did:
+
+- *Summary*: model, capacity, Android and OriginOS version, battery, and the sync options.
+- *Music*: **Sync Music** with the entire library, or selected playlists, artists, albums and genres.
+- *On My Phone*: all music on the phone, with play, copy to the library, and delete.
+- Screen mirroring, keyboard & mouse and the phone drive, one click each.
+
+How sync works:
+
+- Songs go to `Music/<Artist>/<Album>/` on the phone, and playlists become `.m3u8` files in `Music/Playlists`.
+- Sync is incremental and only copies what changed. A cancelled sync resumes where it stopped.
+- Optionally, lossless and very high bit-rate songs are converted to 256 kbps AAC, and the phone syncs
+  automatically when it's plugged in.
+- **Sync only ever removes songs it put on the phone itself** (it keeps a list in
+  `Music/.vivo-officekit-sync.json`). Music you copied there another way is left alone.
+
+**Office Kit.** vivo's own pages: Home, Connect, Notes, Calendar, Albums, Recorder, Tools and Settings.
+vivo's window is docked into the content area, so it behaves exactly as before.
+
+**Google.** Google replaces vivo's cloud, which needs a vivo account and doesn't work outside the vivo
+ecosystem. The pages open inside the window with one Google sign-in that's remembered (*Open in Browser* is
+always there as a fallback):
+
+| vivo cloud | Google |
+|---|---|
+| vivo account sign-in | Google account |
+| Contacts | Google Contacts |
+| Events (calendar) | Google Calendar |
+| To-dos | Google Tasks |
+| Notes sync | Google Keep |
+| Albums backup | Google Photos |
+| Cloud Drive | Google Drive |
+| Find device | Find My Device |
+| Browser sync, spam blocking, "Sign in to auto-connect" | hidden (no Google web equivalent; USB connection still works) |
+
+China-model phones usually ship without Google Play services. The Google pages work on the PC either way,
+but for the phone itself to sync contacts and calendar with Google, or show up in Find My Device, it needs
+Google services installed.
+
 ## Phone setup (one time)
 
 1. **Settings → About phone → Software version**: tap it 7 times to unlock Developer options.
@@ -82,8 +155,8 @@ Options:
 | Drag phone files to the desktop | Windows virtual-file drag | drags straight from the mounted phone drive |
 | **Photo & video backup** | `vivoBackup.exe` | `backup-worker.js`: copies new photos/videos from DCIM, Pictures and Movies into `<backup folder>/<phone>/<album>/`. Incremental, keeps file dates, drives the app's progress card, auto-backup and pause |
 | **Answer calls on the PC** | `phoneCall.exe` | call card with Answer, Decline, Hang up and Mute, driven over adb. Closes when the call ends. **Listen on PC** plays the call audio through scrcpy (Android 11+) |
-| Screen mirroring / PC mode | `PCMode.exe`, `vivoScreen.exe` | **scrcpy** |
-| Keyboard & mouse sharing | `vivoRelay.exe` | scrcpy with UHID keyboard/mouse, so the PC's keyboard and mouse control the phone |
+| Screen mirroring / PC mode | `PCMode.exe`, `vivoScreen.exe` | **scrcpy**, opened only when you click Screen mirroring |
+| Keyboard & mouse sharing | `vivoRelay.exe` | scrcpy with UHID keyboard/mouse, so the PC's keyboard and mouse control the phone. Opened only when you click it. vivo starts its relay by itself at launch and restarts it whenever it exits, so on Linux it gets a stand-in process instead of a window |
 | Phone camera as webcam | `vCamera.exe` | scrcpy camera → v4l2loopback virtual webcam (setup below) |
 | Local databases (notes, calendar, albums, recorder, settings) | created by `vivoSyncService.exe` | `db-init.js` creates the same SQLite schemas and migrations (recovered from the service binary) |
 | Notifications | `pc_toast.exe` | `notify-send` |
@@ -127,6 +200,9 @@ echo 'options v4l2loopback card_label="vivo Phone Camera" exclusive_caps=1' | su
 | `PCSUITE_SCRCPY_ARGS` | extra scrcpy options for mirroring |
 | `PCSUITE_NO_SANDBOX=1` | run without the Chromium sandbox |
 | `PCSUITE_REQUIRE_PHONE_UPDATE=1` | enforce vivo's minimum phone-app version (off by default, see Troubleshooting) |
+| `PCSUITE_CLASSIC_UI=1` | vivo's original window instead of the iTunes-style one (no music library) |
+| `PCSUITE_SHOW_CLOUD=1` | keep vivo's own cloud services and sign-in instead of the Google replacements |
+| `PCSUITE_WAYLAND=1` | don't force X11 (XWayland). The docked Office Kit pages need X11 window positioning |
 | `PCSUITE_DEBUG=1` | verbose log |
 
 ## Troubleshooting
@@ -139,6 +215,15 @@ echo 'options v4l2loopback card_label="vivo Phone Camera" exclusive_caps=1' | su
   The Linux build skips that version check, so older phone versions connect anyway. If one feature misbehaves
   with an old phone version, `PCSUITE_REQUIRE_PHONE_UPDATE=1` turns the check back on.
 - **Phone drive doesn't appear**: install `fuse3`, and make sure `~/vivo Phone` is empty.
+- **Mirroring or keyboard & mouse windows open on their own**: fixed. They only open when you click them now. If
+  a click in vivo's own page doesn't open one, use the buttons under *Devices* in the source list.
+  `linux.log` shows each launch, and whether it was "requested by the user" or a vivo background start.
+- **Office Kit pages show up outside the window**: the docking needs X11. Don't set `PCSUITE_WAYLAND`, or use
+  `PCSUITE_CLASSIC_UI=1`.
+- **Google says "This browser or app may not be secure"**: Google sometimes blocks sign-in inside apps. Use
+  *Open in Browser*, or try again later.
+- **Music library**: the library is stored in `~/.config/pcsuite/music/` (`library.json` and the artwork). Deleting it
+  rebuilds it from your music folders. Ratings, play counts and playlists are lost when you do that.
 - **Blank window or sandbox error**: run `PCSUITE_NO_SANDBOX=1 vivo-pcsuite`.
 - Logs are in `~/.config/pcsuite/log/`:
   - `linux.log`: this port, including every Windows program the app tried to start and what replaced it.
@@ -155,6 +240,11 @@ echo 'options v4l2loopback card_label="vivo Phone Camera" exclusive_caps=1' | su
 - `port/linux/exe-dispatch.js`: intercepts every launch of a vivo `.exe` and starts the Linux replacement.
 - `port/linux/`: the replacements (`backup-worker.js`, `phone-call.js`, `phone-drive.js` + `vivo-phonefs.py`,
   `dragfile-linux.js`, `filesearch-linux.js`, `regedit-linux.js`, `db-init.js`, `dom-i18n.js`).
+- `port/itunes/`: the iTunes-style window. `main.js` creates the window and docks vivo's,
+  `library.js`/`tags.js` hold the music library and the tag reader, `device.js` does phone info and music
+  sync over adb, and `ui/` is the interface.
+- `port/linux/google-services.js` replaces vivo's cloud cards with Google ones. `user-intent.js` +
+  `exe-dispatch.js` make sure phone windows only open on a click.
 - `port/i18n/`: the English pack and its patcher. It only touches display text, and skips any string the code
   also compares against.
 

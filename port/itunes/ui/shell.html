@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' vkmedia:; img-src 'self' vkmedia: data:; media-src vkmedia:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>vivo Office Kit</title>
+<link rel="stylesheet" href="shell.css">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <button class="ibtn menu-btn" id="menuBtn" title="Menu"></button>
+    <div class="transport">
+      <button class="ibtn" id="prevBtn" title="Previous (Ctrl+Left)"></button>
+      <button class="ibtn play" id="playBtn" title="Play (Space)"></button>
+      <button class="ibtn" id="nextBtn" title="Next (Ctrl+Right)"></button>
+    </div>
+    <div class="vol"><span id="volIcon"></span><input type="range" class="slim" id="vol" min="0" max="1" step="0.01" value="0.8" title="Volume"></div>
+    <div class="spacer"></div>
+    <div class="lcd" id="lcd"></div>
+    <div class="spacer"></div>
+    <button class="ibtn" id="shuffleBtn" title="Shuffle"></button>
+    <button class="ibtn" id="repeatBtn" title="Repeat"></button>
+    <button class="ibtn" id="upNextBtn" title="Up Next"></button>
+    <div class="search"><span id="searchIcon"></span><input id="search" type="search" placeholder="Search" spellcheck="false"></div>
+    <div class="winbtns">
+      <button class="ibtn" id="minBtn" title="Minimize"></button>
+      <button class="ibtn" id="maxBtn" title="Maximize"></button>
+      <button class="ibtn close" id="closeBtn" title="Close"></button>
+    </div>
+  </header>
+  <nav class="sub">
+    <div class="navs"><button class="ibtn" id="backBtn" title="Back"></button><button class="ibtn" id="fwdBtn" title="Forward"></button></div>
+    <button class="picker" id="picker"></button>
+    <button class="devchip" id="devchip" hidden></button>
+    <div class="tabs" id="tabs"></div>
+  </nav>
+  <div class="body">
+    <aside class="side" id="side"></aside>
+    <main class="main" id="main">
+      <div class="view" id="view"></div>
+      <div class="status" id="status"></div>
+    </main>
+  </div>
+</div>
+<div class="dropzone">Drop music to add it to your library</div>
+<audio id="audio" preload="auto" crossorigin="anonymous"></audio>
+<script src="icons.js"></script>
+<script src="shell.js"></script>
+</body>
+</html>

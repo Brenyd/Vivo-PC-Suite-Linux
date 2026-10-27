@@ -44,10 +44,10 @@ function node(script, args) {
 
 // basename (lowercase) -> function(args) => [command, args] | null (= harmless placeholder process)
 const HANDLERS = {
-  // screen mirroring (vivoScreen / PCMode)
-  'pcmode.exe': () => scrcpy(['--window-title', 'vivo phone', '--stay-awake'], 'Screen mirroring'),
-  'vivoscreen.exe': () => scrcpy(['--window-title', 'vivo phone', '--stay-awake'], 'Screen mirroring'),
-  'vscreen.exe': () => scrcpy(['--window-title', 'vivo phone', '--stay-awake'], 'Screen mirroring'),
+  // screen mirroring (vivoScreen / PCMode): only when the user asked for it (see guarded() below)
+  'pcmode.exe': () => ({ kind: 'mirror' }),
+  'vivoscreen.exe': () => ({ kind: 'mirror' }),
+  'vscreen.exe': () => ({ kind: 'mirror' }),
   // phone camera as a PC webcam (vivoCamera / vCamera) -> scrcpy camera source into v4l2loopback
   'vcamera.exe': () => {
     const dev = loopbackDevice();
@@ -58,11 +58,11 @@ const HANDLERS = {
     return scrcpy(['--video-source=camera', '--camera-facing=back', '--camera-size=1920x1080', `--v4l2-sink=${dev}`,
       '--no-audio', '--no-playback', '--no-control'], 'Phone camera as webcam');
   },
-  // keyboard & mouse sharing: PC keyboard/mouse drive the phone as real (UHID) devices
-  'vivorelay.exe': args => args.join(' ').includes('keyboardMouseCoordination')
-    ? scrcpy(['--keyboard=uhid', '--mouse=uhid', '--max-size=1024', '--window-title', 'vivo keyboard & mouse'], 'Keyboard & mouse sharing') : null,
-  'vrelay.exe': args => HANDLERS['vivorelay.exe'](args),
-  'keymouse.exe': () => scrcpy(['--keyboard=uhid', '--mouse=uhid', '--max-size=1024', '--window-title', 'vivo keyboard & mouse'], 'Keyboard & mouse sharing'),
+  // keyboard & mouse sharing (vivoRelay). vivo starts the relay by itself at launch as a background service and
+  // restarts it whenever it exits, so it must never open a window on its own: it opens only when the user asked.
+  'vivorelay.exe': () => ({ kind: 'keymouse' }),
+  'vrelay.exe': () => ({ kind: 'keymouse' }),
+  'keymouse.exe': () => ({ kind: 'keymouse' }),
   // photo & video backup worker (SyncService/vivoBackup.exe) -> our Node worker (backup-worker.js)
   'vivobackup.exe': args => node('backup-worker.js', args),
   // call handoff window (phonecall/phoneCall.exe) -> in-app call card driven over adb (phone-call.js)
@@ -74,9 +74,53 @@ const HANDLERS = {
   },
 };
 
+// ---- windows that need a user request (screen mirroring, keyboard & mouse)
+const SCRCPY = {
+  mirror: { args: ['--window-title', 'vivo phone', '--stay-awake'], what: 'Screen mirroring' },
+  keymouse: { args: ['--keyboard=uhid', '--mouse=uhid', '--max-size=1024', '--window-title', 'vivo keyboard & mouse'], what: 'Keyboard & mouse' },
+};
+const running = { mirror: null, keymouse: null };     // the real scrcpy window per kind
+const held = { mirror: new Set(), keymouse: new Set() }; // stand-ins given to vivo for launches nobody asked for
+let intent = null;
+
+/** A do-nothing process that lives as long as the app (or until killed), so vivo sees its helper "running"
+ *  and stops restarting it. */
+function placeholder(kind) {
+  const p = cp.spawn('sh', ['-c', `while kill -0 ${process.pid} 2>/dev/null; do sleep 5; done`], { stdio: ['ignore', 'pipe', 'pipe'] });
+  p.on('error', () => {});
+  if (kind) { held[kind].add(p); p.on('exit', () => held[kind].delete(p)); }
+  return p;
+}
+function releaseHeld(kind) { for (const p of held[kind]) { try { p.kill(); } catch (_) {} } held[kind].clear(); }
+
+/** Open (or focus) the real window for `kind`. Returns the process, or null. */
+function open(kind, opts) {
+  if (running[kind]) return running[kind];
+  const s = scrcpy(SCRCPY[kind].args, SCRCPY[kind].what);
+  if (!s) return null;
+  const o = Object.assign({}, opts || {}, { shell: false });
+  if (o.cwd && !fs.existsSync(o.cwd)) delete o.cwd;
+  const p = cp.spawn(s[0], s[1], o);
+  p.on('error', e => log(`exe-dispatch: ${kind}: ${e.message}`));
+  for (const st of [p.stdout, p.stderr]) if (st) st.on('data', () => {});   // keep scrcpy from blocking on a full pipe
+  running[kind] = p;
+  p.on('exit', () => { if (running[kind] === p) running[kind] = null; log(`exe-dispatch: ${kind} window closed`); });
+  return p;
+}
+
+function guarded(kind, opts) {
+  if (running[kind]) { log(`exe-dispatch: ${kind} already open`); return placeholder(null); }
+  if (intent && intent.consume(kind)) { log(`exe-dispatch: ${kind} requested by the user, opening`); return open(kind, opts) || placeholder(null); }
+  log(`exe-dispatch: ${kind} not requested by the user (vivo background start), not opening a window`);
+  return placeholder(kind);
+}
+
 function resolveHandler(cmd, args) {
   cmd = cmd.replace(/^"|"$/g, '');
   const base = path.basename(cmd).toLowerCase();
+  // phone windows go through the user-request guard first, even though PCMode.exe is also a script here
+  const GUARDED = ['pcmode.exe', 'vivoscreen.exe', 'vscreen.exe', 'vivorelay.exe', 'vrelay.exe', 'keymouse.exe'];
+  if (GUARDED.includes(base)) return HANDLERS[base](args);
   // our own executable scripts (pc_toast.exe, pcsuite_.exe, ...) keep working as-is
   try { const head = fs.readFileSync(cmd, { encoding: 'latin1' }).slice(0, 2); if (head === '#!') return null; } catch (_) {}
   if (HANDLERS[base]) return HANDLERS[base](args) || ['sh', ['-c', 'exit 0']];
@@ -84,8 +128,14 @@ function resolveHandler(cmd, args) {
 }
 
 module.exports = {
-  install(logger) {
+  /** Used by the music/iTunes window: open mirroring or keyboard & mouse directly. */
+  launch(kind) { if (intent) intent.consume(kind); return !!open(kind); },
+  isOpen(kind) { return !!running[kind]; },
+  install(logger, userIntent) {
     log = logger || log;
+    intent = userIntent || null;
+    // a click on a mirroring / keyboard & mouse control releases vivo's stand-in, so vivo's own restart opens it
+    if (intent) intent.onClick(t => { const k = intent.classify(t); if (k && held[k].size) { log(`exe-dispatch: ${k} requested, releasing vivo's stand-in`); releaseHeld(k); } });
     const origSpawn = cp.spawn;
     cp.spawn = function (cmd, args, opts) {
       if (typeof cmd === 'string' && /\.exe"?$/i.test(cmd)) {
@@ -93,6 +143,7 @@ module.exports = {
         const o = Array.isArray(args) ? opts : args;
         log(`exe-dispatch: ${cmd} ${a.map(x => (/^--token=/.test(String(x)) ? '--token=***' : x)).join(' ')}`.slice(0, 1000));
         const h = resolveHandler(cmd, a);
+        if (h && h.kind) return guarded(h.kind, o);
         if (h && h.proc) return h.proc;
         if (h) {
           const clean = Object.assign({}, o || {});

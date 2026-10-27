@@ -86,13 +86,22 @@ Module._load = function (req, parent, isMain) {
 })();
 
 // Windows helper programs (*.exe) -> Linux equivalents (scrcpy, phone drive, ...)
-try { require('./linux/exe-dispatch.js').install(m => w('exe', [m])); } catch (e) { w('exe', [e.stack]); }
+// Phone windows (mirroring, keyboard & mouse) open only when the user clicked for them (linux/user-intent.js).
+let intent = null;
+try { intent = require('./linux/user-intent.js'); intent.install(electron.app, m => w('exe', [m])); } catch (e) { w('exe', [e.stack]); }
+try { require('./linux/exe-dispatch.js').install(m => w('exe', [m]), intent); } catch (e) { w('exe', [e.stack]); }
 
 // Display-only English layer for strings that can't be changed in the code
 try { require('./linux/dom-i18n.js').install(electron.app, m => w('i18n', [m])); } catch (e) { w('i18n', [e.stack]); }
 
+// vivo cloud services -> Google equivalents; vivo-account sign-in hidden (PCSUITE_SHOW_CLOUD=1 keeps vivo's)
+try { require('./linux/google-services.js').install(electron.app, m => w('google', [m])); } catch (e) { w('google', [e.stack]); }
+
 // Phone drive: mount connected phones as folders (replaces vivo's vdfs/Dokan driver)
 electron.app.whenReady().then(() => { try { require('./linux/phone-drive.js').start(m => w('drive', [m])); } catch (e) { w('drive', [e.stack]); } });
+
+// iTunes-style main window with the music library and phone music sync (itunes/). PCSUITE_CLASSIC_UI=1 = vivo's own window.
+if (!process.env.PCSUITE_CLASSIC_UI) { try { require('./itunes/main.js').install(electron, m => w('music', [m])); } catch (e) { w('music', [e.stack]); } }
 
 require('./dist/electron/main.js');
 w('boot', ['main.js loaded']);
